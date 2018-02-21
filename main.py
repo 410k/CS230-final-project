@@ -63,7 +63,7 @@ args = parser.parse_args()
 
 def setup_dir():
 
-    print('[*] Setting up directory...')
+    print('[*] Setting up directory...', flush=True)
 
     main_path = args.runs_dir
     current_run = os.path.join(main_path, args.current_run)
@@ -117,7 +117,7 @@ def load_training_data(x_path, y_path, genre):
     X_data = []
     Y_data = []
     names = []
-    print('[*] Loading data...')
+    print('[*] Loading data...', flush=True)
 
     x_path = os.path.join(x_path, genre)
     y_path = os.path.join(y_path, genre)
@@ -137,7 +137,6 @@ def load_training_data(x_path, y_path, genre):
         loaded_y = loaded_y/127
         Y_data.append(loaded_y)
         assert X_data[i].shape[0] == Y_data[i].shape[0]
-
 
     return X_data, Y_data
 
@@ -171,7 +170,7 @@ def main():
             loaded_epoch = args.load_model.split('.')[0]
             loaded_epoch = loaded_epoch.split('-')[-1]
             loaded_epoch = loaded_epoch[1:]
-            print("[*] Loading " + args.load_model + " and continuing from " + loaded_epoch + ".")
+            print("[*] Loading " + args.load_model + " and continuing from " + loaded_epoch + ".", flush=True)
             loaded_epoch = int(loaded_epoch)
             network.train(data, model=args.load_model, starting_epoch=loaded_epoch+1)
         elif args.load_last:
@@ -186,10 +185,10 @@ def main():
             # loaded_epoch = last.split('-')[-1]
             # loaded_epoch = loaded_epoch[1:]
             # last = last + ".ckpt"
-            print("[*] Loading " + last + " and continuing from " + str(loaded_epoch) + ".")
+            print("[*] Loading " + last + " and continuing from " + str(loaded_epoch) + ".", flush=True)
             network.train(data, model=last, starting_epoch=loaded_epoch+1)
         else:
-            network.train(data)
+            network.train(data, epochs=1)
     else:
         network.load(args.load_model)
 

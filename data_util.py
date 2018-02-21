@@ -37,7 +37,7 @@ class BatchGenerator(object):
             for batch_idx in range(0, len(self.data_x), self.batch_size):
                 input_batch = []
                 output_batch = []
-                for j in xrange(batch_idx, min(batch_idx+self.batch_size,len(self.data_x)), 1):
+                for j in range(batch_idx, min(batch_idx+self.batch_size,len(self.data_x)), 1):
                     input_batch.append(shuff_x[j])
                     output_batch.append(shuff_y[j])
                 input_batch, output_batch, seq_len = self.pad(input_batch, output_batch)
@@ -90,8 +90,11 @@ class BatchGenerator(object):
             mini_batches = 1
             max_lens = max(lens)
         else:
-            mini_batches = length/self.mini_len
+            mini_batches = int(length/self.mini_len)
             max_lens = self.mini_len
+
+        # import pdb
+        # pdb.set_trace()
 
         sequence_X = np.reshape(sequence_X, [current_batch*mini_batches, max_lens, self.input_size])
         sequence_Y = np.reshape(sequence_Y, [current_batch*mini_batches, max_lens, self.output_size])

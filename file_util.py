@@ -25,28 +25,28 @@ def validate_data(path, quant):
         for file in files:
             if file.split('.')[-1] == 'mid' or file.split('.')[-1] == 'MID':
                 total_file_count += 1
-                print 'Processing ' + str(file)
+                print('Processing ' + str(file))
                 midi_path = os.path.join(root,file)
                 try:
                     midi_file = MidiFile(midi_path)
                 except (KeyError, IOError, TypeError, IndexError, EOFError, ValueError):
-                    print "Bad MIDI."
+                    print("Bad MIDI.")
                     continue
                 time_sig_msgs = [ msg for msg in midi_file.tracks[0] if msg.type == 'time_signature' ]
 
                 if len(time_sig_msgs) == 1:
                     time_sig = time_sig_msgs[0]
                     if not (time_sig.numerator == 4 and time_sig.denominator == 4):
-                        print '\tTime signature not 4/4. Skipping ...'
+                        print('\tTime signature not 4/4. Skipping ...')
                         continue
                 else:
                     # print time_sig_msgs
-                    print '\tNo time signature. Skipping ...'
+                    print('\tNo time signature. Skipping ...')
                     continue
 
                 mid = quantize(MidiFile(os.path.join(root,file)), quant)
                 if not mid:
-                    print 'Invalid MIDI. Skipping...'
+                    print('Invalid MIDI. Skipping...')
                     continue
 
                 if not os.path.exists(base_path_out):
@@ -54,11 +54,11 @@ def validate_data(path, quant):
 
                 out_file = os.path.join(base_path_out, file)
 
-                print '\tSaving', out_file
+                print('\tSaving', out_file)
                 midi_file.save(out_file)
                 processed_count += 1
 
-    print '\nProcessed {} files out of {}'.format(processed_count, total_file_count)
+    print('\nProcessed {} files out of {}'.format(processed_count, total_file_count))
 
 def quantize_data(path, quant):
     '''Creates a folder containing the quantised MIDI files.
@@ -82,7 +82,7 @@ def quantize_data(path, quant):
                 total_file_count += 1
                 mid = quantize(MidiFile(os.path.join(root,file)),quant)
                 if not mid:
-                    print 'Invalid MIDI. Skipping...'
+                    print('Invalid MIDI. Skipping...')
                     continue
                 suffix = root.split(path)[-1]
                 out_dir = base_path_out + '/' + suffix
@@ -90,19 +90,19 @@ def quantize_data(path, quant):
                     os.makedirs(out_dir)
                 out_file = os.path.join(out_dir, file)
 
-                print 'Saving', out_file
+                print('Saving', out_file)
                 mid.save(out_file)
 
                 processed_count += 1
 
-    print 'Processed {} files out of {}'.format(processed_count, total_file_count)
+    print('Processed {} files out of {}'.format(processed_count, total_file_count))
 
 def save_data(path, quant, one_hot=True):
-        '''Creates a folder containing the quantised MIDI files.
+    '''Creates a folder containing the quantised MIDI files.
 
-        Arguments:
-        path -- Quantised directory containing midis.
-        quant -- Level of quantisation'''
+    Arguments:
+    path -- Quantised directory containing midis.
+    quant -- Level of quantisation'''
 
     path_prefix, path_suffix = os.path.split(path)
 
@@ -128,18 +128,19 @@ def save_data(path, quant, one_hot=True):
                 midi_path = os.path.join(root,file)
                 midi_file = MidiFile(midi_path)
 
-                print 'Processing ' + str(file)
+                print('Processing ' + str(file))
                 mid = MidiFile(os.path.join(root,file))
 
                 # mid = quantize(midi_file,
                 #                quantization=quant)
 
                 if one_hot:
-                    try:
-                        array, velocity_array = midi_to_array_one_hot(mid, quant)
-                    except (KeyError, TypeError, IOError, IndexError, EOFError, ValueError):
-                        print "Out of bounds"
-                        continue
+                    array, velocity_array = midi_to_array_one_hot(mid, quant)
+                    # try:
+                    #     array, velocity_array = midi_to_array_one_hot(mid, quant)
+                    # except (KeyError, TypeError, IOError, IndexError, EOFError, ValueError):
+                    #     print("Out of bounds")
+                    #     continue
                 else:
                     array, velocity_array = midi_to_array(mid, quant)
 
@@ -151,7 +152,7 @@ def save_data(path, quant, one_hot=True):
 
                 # print out_dir
 
-                print 'Saving', out_array
+                print('Saving', out_array)
 
                 # print_array( mid, array)
                 # raw_input("Press Enter to continue...")
@@ -160,7 +161,7 @@ def save_data(path, quant, one_hot=True):
                 np.save(out_velocity, velocity_array)
 
                 processed_count += 1
-    print '\nProcessed {} files out of {}'.format(processed_count, total_file_count)
+    print('\nProcessed {} files out of {}'.format(processed_count, total_file_count))
 
 def load_data(path):
     '''Returns lists of input and output numpy matrices.

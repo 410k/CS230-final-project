@@ -11,11 +11,16 @@ import random
 
 DEBUG = False
 
+# python 2 -> 3 compatibility for lambda
+def star(f):
+    return lambda args: f(*args)
+
+
 # The MIDI pitches we use.
-PITCHES = xrange(21,109,1)
+PITCHES = range(21,109,1)
 OFFSET = 109-21
 PITCHES_MAP = { p : i for i, p in enumerate(PITCHES) }
-print len(PITCHES)
+print(len(PITCHES))
 
 def nearest_pow2(x):
     '''Normalize input to nearest power of 2, or midpoints between
@@ -64,20 +69,20 @@ def midi_to_array_one_hot(mid, quantization):
 
     track_len_ticks = cum_times[-1]
     if DEBUG:
-        print 'Track len in ticks:', track_len_ticks
+        print('Track len in ticks:', track_len_ticks)
     notes = [
-        (time * (2**quantization/4) / (ticks_per_quarter), msg.type, msg.note, msg.velocity)
+        (int(time * (2**quantization/4) / (ticks_per_quarter)), msg.type, msg.note, msg.velocity)
         for (time, msg) in zip(cum_times, time_msgs)
         if msg.type == 'note_on' or msg.type == 'note_off']
 
     num_steps = int(round(track_len_ticks / float(ticks_per_quarter)*2**quantization/4))
-    normalized_num_steps = nearest_pow2(num_steps)
-    notes.sort(key=lambda (position, note_type, note_num, velocity):(position,-velocity))
+    normalized_num_steps = int(nearest_pow2(num_steps))
+    notes.sort(key=star(lambda position, note_type, note_num, velocity:(position,-velocity)))
 
     if DEBUG:
         # pp = pprint.PrettyPrinter()
-        print num_steps
-        print normalized_num_steps
+        print(num_steps)
+        print(normalized_num_steps)
         # pp.pprint(notes)
 
     midi_array = np.zeros((normalized_num_steps, len(PITCHES)*2))
@@ -96,6 +101,10 @@ def midi_to_array_one_hot(mid, quantization):
 
         if note_type == "note_on" and velocity > 0:
             open_msgs[note_num].append((position, note_type, note_num, velocity))
+
+            # import pdb
+            # pdb.set_trace()
+
             midi_array[position, 2*PITCHES_MAP[note_num]] = 1
             midi_array[position, 2*PITCHES_MAP[note_num]+1] = 1
             velocity_array[position, PITCHES_MAP[note_num]] = velocity
@@ -104,7 +113,7 @@ def midi_to_array_one_hot(mid, quantization):
             note_on_open_msgs = open_msgs[note_num]
 
             if len(note_on_open_msgs) == 0:
-                print 'Bad MIDI, Note has no end time.'
+                print('Bad MIDI, Note has no end time.')
                 return
 
             stack_pos, _, _, vel = note_on_open_msgs[0]
@@ -119,7 +128,7 @@ def midi_to_array_one_hot(mid, quantization):
 
     for (position, note_type, note_num, velocity) in notes:
         if position == normalized_num_steps:
-            print 'Warning: truncating from position {} to {}'.format(position, normalized_num_steps - 1)
+            print('Warning: truncating from position {} to {}'.format(position, normalized_num_steps - 1))
             position = normalized_num_steps - 1
             # continue
 
@@ -141,7 +150,7 @@ def print_array(mid, array, quantization=4):
     ticks_per_beat = mid.ticks_per_beat
     ticks_per_slice = ticks_per_beat/2**quantization
 
-    bars = [x*ticks_per_slice % ticks_per_beat for x in xrange(0,len(array))]
+    bars = [x*ticks_per_slice % ticks_per_beat for x in range(0,len(array))]
 
     # print ticks_per_beat, ticks_per_slice
     res = ''
@@ -156,7 +165,7 @@ def print_array(mid, array, quantization=4):
             bar +=1
         res += '\n'
     # Take out the last newline
-    print res[:-1]
+    print(res[:-1])
 
 def get_note_track(mid):
     '''Given a MIDI object, return the first track with note events.'''
@@ -222,8 +231,8 @@ def unquantize_track(orig_track, style_track):
         np.cumsum([msg.time for msg in style_track[style_first_note_msg_idx:]]),
         [msg for msg in style_track[style_first_note_msg_idx:]])
 
-    orig_cum_msgs.sort(key=lambda (cum_time, msg): cum_time)
-    style_cum_msgs.sort(key=lambda (cum_time, msg): cum_time)
+    orig_cum_msgs.sort(key=star(lambda cum_time, msg: cum_time))
+    style_cum_msgs.sort(key=star(lambda cum_time, msg: cum_time))
 
     open_msgs = defaultdict(list)
 
@@ -283,9 +292,9 @@ def quantize_track(track, ticks_per_quarter, quantization):
             first_note_msg_idx = i
             break
 
-    cum_msgs = zip(
+    cum_msgs = list(zip(
         np.cumsum([msg.time for msg in track[first_note_msg_idx:]]),
-        [msg for msg in track[first_note_msg_idx:]])
+        [msg for msg in track[first_note_msg_idx:]]))
     end_of_track_cum_time = cum_msgs[-1][0]
 
     quantized_track = MidiTrack()
@@ -296,8 +305,8 @@ def quantize_track(track, ticks_per_quarter, quantization):
     quantized_msgs = []
     for cum_time, msg in cum_msgs:
         if DEBUG:
-            print 'Message:', msg
-            print 'Open messages:'
+            print('Message:', msg)
+            print('Open messages:')
             pp.pprint(open_msgs)
         if msg.type == 'note_on' and msg.velocity > 0:
             # Store until note off event. Note that there can be
@@ -310,13 +319,13 @@ def quantize_track(track, ticks_per_quarter, quantization):
             #     'Bad MIDI. Cannot have note off event before note on event'
 
             if msg.note not in open_msgs:
-                 print 'Bad MIDI. Cannot have note off event before note on event'
+                 print('Bad MIDI. Cannot have note off event before note on event')
                  return
 
             note_on_open_msgs = open_msgs[msg.note]
 
             if len(note_on_open_msgs) == 0:
-                print 'Bad MIDI, Note has no end time.'
+                print('Bad MIDI, Note has no end time.')
                 return
 
             # assert len(note_on_open_msgs) > 0, 'Bad MIDI, Note has no end time.'
@@ -336,27 +345,27 @@ def quantize_track(track, ticks_per_quarter, quantization):
             quantized_msgs.append((min(end_of_track_cum_time, quantized_note_off_cum_time), msg))
 
             if DEBUG:
-                print 'Appended', quantized_msgs[-2:]
+                print('Appended', quantized_msgs[-2:])
         elif msg.type == 'end_of_track':
             quantized_msgs.append((cum_time, msg))
 
         if DEBUG:
-            print '\n'
+            print('\n')
 
     # Now, sort the quantized messages by (cumulative time,
     # note_type), making sure that note_on events come before note_off
     # events when two event have the same cumulative time. Compute
     # differential times and construct the quantized track messages.
     quantized_msgs.sort(
-        key=lambda (cum_time, msg): cum_time
-        if (msg.type=='note_on' and msg.velocity > 0) else cum_time + 0.5)
+        key=star(lambda cum_time, msg: 
+        cum_time if (msg.type=='note_on' and msg.velocity > 0) else cum_time + 0.5))
 
     diff_times = [quantized_msgs[0][0]] + list(
         np.diff([ msg[0] for msg in quantized_msgs ]))
     for diff_time, (cum_time, msg) in zip(diff_times, quantized_msgs):
         quantized_track.append(msg.copy(time=diff_time))
     if DEBUG:
-        print 'Quantized messages:'
+        print('Quantized messages:')
         pp.pprint(quantized_msgs)
         pp.pprint(diff_times)
     return quantized_track

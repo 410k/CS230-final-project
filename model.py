@@ -20,7 +20,7 @@ class GenreLSTM(object):
 
 
     def prepare_bidiretional(self, glorot=True):
-        print("[*] Preparing bidirectional dynamic RNN...")
+        print("[*] Preparing bidirectional dynamic RNN...", flush=True)
         self.input_cell = tf.contrib.rnn.LSTMCell(self.input_size, forget_bias=1.0)
         self.input_cell = tf.contrib.rnn.DropoutWrapper(self.input_cell, input_keep_prob=self.input_keep_prob, output_keep_prob=self.output_keep_prob)
         self.enc_outputs, self.enc_states = tf.nn.dynamic_rnn(self.input_cell, self.inputs, sequence_length=self.seq_len, dtype=tf.float32)
@@ -98,7 +98,7 @@ class GenreLSTM(object):
         self.classical_linear_out = tf.reshape(self.classical_linear_out,[tf.shape(self.true_classical_outputs)[0],tf.shape(self.true_classical_outputs)[1], tf.shape(self.true_classical_outputs)[2]])
 
     def prepare_unidiretional(self, glorot=True):
-        print("[*] Preparing unidirectional dynamic RNN...")
+        print("[*] Preparing unidirectional dynamic RNN...", flush=True)
         self.input_cell = tf.contrib.rnn.LSTMCell(self.input_size, forget_bias=1.0)
         self.input_cell = tf.contrib.rnn.DropoutWrapper(self.input_cell, input_keep_prob=self.input_keep_prob, output_keep_prob=self.output_keep_prob)
         self.enc_outputs, self.enc_states = tf.nn.dynamic_rnn(self.input_cell, self.inputs, sequence_length=self.seq_len, dtype=tf.float32)
@@ -218,16 +218,16 @@ class GenreLSTM(object):
         classical_generator = classical_batcher.batch()
         jazz_generator = jazz_batcher.batch()
 
-        print("[*] Initiating training...")
+        print("[*] Initiating training...", flush=True)
 
-        for epoch in xrange(starting_epoch, epochs):
+        for epoch in range(starting_epoch, epochs):
 
             classical_epoch_avg = 0
             jazz_epoch_avg = 0
 
-            print("[*] Epoch %d" % epoch)
+            print("[*] Epoch %d" % epoch, flush=True)
             for batch in range(classical_batcher.batch_count):
-                batch_X, batch_Y, batch_len = classical_generator.next()
+                batch_X, batch_Y, batch_len = next(classical_generator)
                 batch_len = [batch_len] * len(batch_X)
                 epoch_error, classical_summary, _  =  self.sess.run([self.classical_loss,
                                                          self.summary_op,
@@ -239,11 +239,11 @@ class GenreLSTM(object):
                                                                                   self.input_keep_prob: input_keep_prob,
                                                                                   self.output_keep_prob: output_keep_prob})
                 classical_epoch_avg += epoch_error
-                print("\tBatch %d/%d, Training MSE for Classical batch: %.9f" % (batch+1, classical_batcher.batch_count, epoch_error))
+                print("\tBatch %d/%d, Training MSE for Classical batch: %.9f" % (batch+1, classical_batcher.batch_count, epoch_error), flush=True)
                 self.train_writer.add_summary(classical_summary, epoch*classical_batcher.batch_count + epoch)
 
             for batch in range(jazz_batcher.batch_count):
-                batch_X, batch_Y, batch_len = jazz_generator.next()
+                batch_X, batch_Y, batch_len = next(jazz_generator)
                 batch_len = [batch_len] * len(batch_X)
                 epoch_error, jazz_summary, _  =  self.sess.run([self.jazz_loss,
                                                          self.summary_op,
@@ -255,29 +255,29 @@ class GenreLSTM(object):
                                                                                   self.input_keep_prob: input_keep_prob,
                                                                                   self.output_keep_prob: output_keep_prob})
                 jazz_epoch_avg += epoch_error
-                print("\tBatch %d/%d, Training MSE for Jazz batch: %.9f" % (batch+1, jazz_batcher.batch_count, epoch_error))
+                print("\tBatch %d/%d, Training MSE for Jazz batch: %.9f" % (batch+1, jazz_batcher.batch_count, epoch_error), flush=True)
 
                 self.train_writer.add_summary(jazz_summary, epoch*jazz_batcher.batch_count + epoch)
                 # self.validation(epoch)
 
-            print("[*] Average Training MSE for Classical epoch %d: %.9f" % (epoch, classical_epoch_avg/classical_batcher.batch_count))
-            print("[*] Average Training MSE for Jazz epoch %d: %.9f" % (epoch, jazz_epoch_avg/jazz_batcher.batch_count))
+            print("[*] Average Training MSE for Classical epoch %d: %.9f" % (epoch, classical_epoch_avg/classical_batcher.batch_count), flush=True)
+            print("[*] Average Training MSE for Jazz epoch %d: %.9f" % (epoch, jazz_epoch_avg/jazz_batcher.batch_count), flush=True)
 
             if epoch % val_epoch == 0 :
-                print("[*] Validating model...")
+                print("[*] Validating model...", flush=True)
                 self.validation(epoch)
 
             if epoch % save_epoch == 0 :
                 self.save(epoch)
 
             if epoch % eval_epoch == 0 :
-                print("[*] Evaluating model...")
+                print("[*] Evaluating model...", flush=True)
                 self.evaluate(epoch)
 
-        print("[*] Training complete.")
+        print("[*] Training complete.", flush=True)
 
     def load(self, model_name, path=None) :
-        print(" [*] Loading checkpoint...")
+        print(" [*] Loading checkpoint...", flush=True)
         self.saver = tf.train.Saver(max_to_keep=0)
         if not path:
             self.saver.restore(self.sess, os.path.join(self.dirs['model_path'], model_name))
@@ -286,11 +286,11 @@ class GenreLSTM(object):
             self.saver.restore(self.sess, path)
 
     def save(self, epoch):
-        print("[*] Saving checkpoint...")
+        print("[*] Saving checkpoint...", flush=True)
         model_name =  "model-e%d.ckpt" % (epoch)
         self.saver = tf.train.Saver(max_to_keep=0)
         save_path = self.saver.save(self.sess, os.path.join(self.dirs['model_path'], model_name))
-        print("[*] Model saved in file: %s" % save_path)
+        print("[*] Model saved in file: %s" % save_path, flush=True)
 
     def predict(self, input_path, output_path):
         in_list = []
@@ -361,7 +361,10 @@ class GenreLSTM(object):
 
     def validation(self, epoch, pred_save=False):
         '''Computes and logs loss of validation set'''
-        in_list, out_list, input_len = self.v_classical_batcher.next()
+        # import pdb
+        # pdb.set_trace()
+
+        in_list, out_list, input_len = next(self.v_classical_batcher)
         input_len = [input_len] * len(in_list)
         c_error, c_out, j_out, e_out, c_summary = self.sess.run([self.classical_loss,
                                           self.classical_linear_out,
@@ -380,7 +383,10 @@ class GenreLSTM(object):
         # for i, x in enumerate(c_out):
             # self.plot_evaluation(epoch, c_files[i], c_out[i], j_out[i], e_out[i], out_list[i])
 
-        in_list, out_list, input_len = self.v_jazz_batcher.next()
+        # import pdb
+        # pdb.set_trace()
+
+        in_list, out_list, input_len = next(self.v_jazz_batcher)
         input_len = [input_len] * len(in_list)
 
         j_error, j_out, c_out, e_out, j_summary = self.sess.run([self.jazz_loss,
@@ -402,8 +408,11 @@ class GenreLSTM(object):
 
         # print("[*] Validating Model...")
 
-        print("[*] Average Test MSE for Classical epoch %d: %.9f" % (epoch, c_error))
-        print("[*] Average Test MSE for Jazz epoch %d: %.9f" % (epoch, j_error))
+        # import pdb
+        # pdb.set_trace()
+
+        print("[*] Average Test MSE for Classical epoch %d: %.9f" % (epoch, c_error), flush=True)
+        print("[*] Average Test MSE for Jazz epoch %d: %.9f" % (epoch, j_error), flush=True)
 
 
         self.test_writer.add_summary(j_summary, epoch)
@@ -520,7 +529,7 @@ class GenreLSTM(object):
         names = ["Actual", "Classical", "Jazz", "Difference", "Encoded"]
 
 
-        for i in xrange(0, plots):
+        for i in range(0, plots):
             fig.add_subplot(1,plots,i+1)
             plt.imshow(graph_items[i], vmin=vmin[i], vmax=vmax[i], cmap=cmap[i], aspect='auto')
 
