@@ -10,7 +10,7 @@ matplotlib.pyplot.ioff()
 import scipy.io
 
 class GenreLSTM(object):
-    def __init__(self, dirs, mini=False, bi=False, one_hot=True, input_size=176, output_size=441, num_layers=1, batch_count=8):
+    def __init__(self, dirs, mini=False, bi=False, one_hot=True, input_size=176, output_size=441, num_layers=3, batch_count=8):
         self.input_size = int(input_size)
         self.output_size = int(output_size)
         self.num_layers = int(num_layers)
@@ -56,7 +56,12 @@ class GenreLSTM(object):
 
             # scope.reuse_variables()
 
-            num_hidden_units = 10
+            # need this for shape of weights to match
+            # only throws error when num_layers > 1
+            # with 100 hidden units, shapes of some variables (error message
+            # doesn't say) are (200,400) and (276,400)
+            # with 10 hidden units, shapes are (20,40) and (186,40)
+            num_hidden_units = self.input_size
 
             self.c_cell_fw = tf.contrib.rnn.LSTMBlockCell(num_hidden_units, forget_bias=1.0)
             self.c_cell_fw = tf.contrib.rnn.DropoutWrapper(self.c_cell_fw, input_keep_prob=self.input_keep_prob, output_keep_prob=self.output_keep_prob)
@@ -170,8 +175,8 @@ class GenreLSTM(object):
 
     def clip_optimizer(self, learning_rate, loss):
         opt = tf.train.AdamOptimizer(learning_rate)
-        import pdb
-        pdb.set_trace()
+        # import pdb
+        # pdb.set_trace()
         gradients = opt.compute_gradients(loss)
 
         for i, (grad, var) in enumerate(gradients):
@@ -180,7 +185,7 @@ class GenreLSTM(object):
 
         return opt.apply_gradients(gradients)
 
-    def train(self, data, model=None, starting_epoch=0, clip_grad=False, epochs=1001, input_keep_prob=0.5, output_keep_prob=0.5, learning_rate=0.001 , eval_epoch=20, val_epoch=10, save_epoch=10):
+    def train(self, data, model=None, starting_epoch=0, clip_grad=True, epochs=1001, input_keep_prob=0.5, output_keep_prob=0.5, learning_rate=0.001 , eval_epoch=10, val_epoch=10, save_epoch=10):
 
         self.data = data
 
