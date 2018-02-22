@@ -4,6 +4,8 @@ import os
 import numpy as np
 from model import GenreLSTM
 
+import scipy.io
+
 
 parser = argparse.ArgumentParser(description='How to run this')
 
@@ -23,7 +25,7 @@ parser.add_argument(
 parser.add_argument(
     "-data_set",
     type=str,
-    default="test",
+    default="train",
     help="The name of training dataset"
 )
 
@@ -71,8 +73,11 @@ def setup_dir():
     files_path = args.data_dir
     files_path = os.path.join(files_path, args.data_set)
 
-    x_path = os.path.join(files_path, 'inputs')
-    y_path = os.path.join(files_path, 'velocities')
+    # x_path = os.path.join(files_path, 'inputs')
+    # y_path = os.path.join(files_path, 'velocities')
+    # eval_path = os.path.join(files_path, 'eval')
+    x_path = files_path
+    y_path = files_path
     eval_path = os.path.join(files_path, 'eval')
 
     model_path = os.path.join(current_run, 'model')
@@ -113,30 +118,41 @@ def setup_dir():
     # print y_path
     return dirs
 
-def load_training_data(x_path, y_path, genre):
+def load_training_data(x_path):
+# def load_training_data(x_path, y_path, genre):
     X_data = []
     Y_data = []
     names = []
     print('[*] Loading data...', flush=True)
 
-    x_path = os.path.join(x_path, genre)
-    y_path = os.path.join(y_path, genre)
+    # x_path = os.path.join(x_path, genre)
+    # y_path = os.path.join(y_path, genre)
+
+    # import pdb
+    # pdb.set_trace()
 
     for i, filename in enumerate(os.listdir(x_path)):
-        if filename.split('.')[-1] == 'npy':
-            names.append(filename)
+        # if filename.split('.')[-1] == 'npy':
+            # names.append(filename)
+        if filename.split('.')[-1] == 'mat':
+            data = scipy.io.loadmat(filename)
+            loaded_x = data['Xin']
+            loaded_y = data['Yout']
+            assert(loaded_x.shape[0] == loaded_y.shape[0])
+            X_data.append(loaded_x)
+            Y_data.append(loaded_y)
 
-    for i, filename in enumerate(names):
-        abs_x_path = os.path.join(x_path,filename)
-        abs_y_path = os.path.join(y_path,filename)
-        loaded_x = np.load(abs_x_path)
+    # for i, filename in enumerate(names):
+    #     abs_x_path = os.path.join(x_path,filename)
+    #     abs_y_path = os.path.join(y_path,filename)
+    #     loaded_x = np.load(abs_x_path)
 
-        X_data.append(loaded_x)
+    #     X_data.append(loaded_x)
 
-        loaded_y = np.load(abs_y_path)
-        loaded_y = loaded_y/127
-        Y_data.append(loaded_y)
-        assert X_data[i].shape[0] == Y_data[i].shape[0]
+    #     loaded_y = np.load(abs_y_path)
+    #     loaded_y = loaded_y/127
+    #     Y_data.append(loaded_y)
+    #     assert X_data[i].shape[0] == Y_data[i].shape[0]
 
     return X_data, Y_data
 
@@ -144,17 +160,18 @@ def prepare_data():
     dirs = setup_dir()
     data = {}
     data["classical"] = {}
-    data["jazz"] = {}
+    # data["jazz"] = {}
 
-    c_train_X , c_train_Y = load_training_data(dirs['x_path'], dirs['y_path'], "classical")
+    # c_train_X , c_train_Y = load_training_data(dirs['x_path'], dirs['y_path'], "classical")
+    c_train_X , c_train_Y = load_training_data(dirs['x_path'])
 
     data["classical"]["X"] = c_train_X
     data["classical"]["Y"] = c_train_Y
 
-    j_train_X , j_train_Y = load_training_data(dirs['x_path'], dirs['y_path'], "jazz")
+    # j_train_X , j_train_Y = load_training_data(dirs['x_path'], dirs['y_path'], "jazz")
 
-    data["jazz"]["X"] = j_train_X
-    data["jazz"]["Y"] = j_train_Y
+    # data["jazz"]["X"] = j_train_X
+    # data["jazz"]["Y"] = j_train_Y
     return dirs, data
 
 def main():

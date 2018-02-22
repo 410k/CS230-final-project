@@ -52,6 +52,9 @@ class BatchGenerator(object):
         lens = [sequence_X[i].shape[0] for i in range(len(sequence_X))]
         # lens2 = [sequence_Y[i].shape[0] for i in range(len(sequence_Y))]
         #
+        # import pdb
+        # pdb.set_trace()
+
         max_lens = max(lens)
         # max_lens2 = max(lens2)
         #
@@ -59,20 +62,20 @@ class BatchGenerator(object):
         # print(max_lens)
         for i, x in enumerate(lens):
             length = x
-            a = list(sequence_X[i])
+            a = list(sequence_X[i])     # cast array as a list
             b = list(sequence_Y[i])
             while length < max_lens:
-                a.append(padding_X)
+                a.append(padding_X)     # keep adding rows
                 b.append(padding_Y)
                 length+=1
 
-            if self.mini:
+            if self.mini:               # make number of rows a multiple of mini_len (maybe for reducing train time?)
                 while length % self.mini_len != 0:
                     a.append(padding_X)
                     b.append(padding_Y)
                     length+=1
 
-            sequence_X[i] = np.array(a)
+            sequence_X[i] = np.array(a) # recast as numpy array
             sequence_Y[i] = np.array(b)
             # for x in minis:
             #     mini_X.append(np.array(a[x:min(x+self.mini,x)]))
