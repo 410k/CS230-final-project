@@ -205,7 +205,7 @@ def main():
             print("[*] Loading " + last + " and continuing from " + str(loaded_epoch) + ".", flush=True)
             network.train(data, model=last, starting_epoch=loaded_epoch+1)
         else:
-            network.train(data, epochs=1)
+            network.train(data, epochs=101)
     else:
         network.load(args.load_model)
 

@@ -180,7 +180,7 @@ class GenreLSTM(object):
 
         return opt.apply_gradients(gradients)
 
-    def train(self, data, model=None, starting_epoch=0, clip_grad=False, epochs=1001, input_keep_prob=0.5, output_keep_prob=0.5, learning_rate=0.001 , eval_epoch=20,val_epoch=10, save_epoch=1):
+    def train(self, data, model=None, starting_epoch=0, clip_grad=False, epochs=1001, input_keep_prob=0.5, output_keep_prob=0.5, learning_rate=0.001 , eval_epoch=20, val_epoch=10, save_epoch=10):
 
         self.data = data
 
@@ -516,6 +516,11 @@ class GenreLSTM(object):
                                                                     self.input_keep_prob: 1.0,
                                                                     self.output_keep_prob: 1.0,
                                                                     self.true_classical_outputs: self.c_out_list[i]})
+            self.plot_evaluation(epoch, filename, c_output, c_output, c_output, self.c_out_list[i])
+            
+            tmp_dict = {'Y_output': c_output}
+            filepath = os.path.join(self.dirs['pred_path'], filename.split('.')[0] + "-e%d" % (epoch)+".mat")
+            scipy.io.savemat(filepath, tmp_dict)
         #     c_error, c_out, j_out, e_out, summary = self.sess.run([self.classical_loss,
         #                                       self.classical_linear_out,
         #                                       self.jazz_linear_out,
@@ -568,13 +573,18 @@ class GenreLSTM(object):
         fig = plt.figure(figsize=(14,11), dpi=120)
         fig.suptitle(filename, fontsize=10, fontweight='bold')
 
-        graph_items = [out_list[-1]*127, c_out[-1]*127, j_out[-1]*127,  (c_out[-1]-j_out[-1])*127 , e_out[-1]]
+        # graph_items = [out_list[-1]*127, c_out[-1]*127, j_out[-1]*127,  (c_out[-1]-j_out[-1])*127 , e_out[-1]]
+        # plots = len(graph_items)
+        # cmap = ['jet', 'jet', 'jet', 'jet', 'bwr']
+        # vmin = [0,0,0,-10,-1]
+        # vmax = [127,127,127,10,1]
+        # names = ["Actual", "Classical", "Jazz", "Difference", "Encoded"]
+        graph_items = [out_list[-1]*127, c_out[-1]*127]
         plots = len(graph_items)
-        cmap = ['jet', 'jet', 'jet', 'jet', 'bwr']
-        vmin = [0,0,0,-10,-1]
-        vmax = [127,127,127,10,1]
-        names = ["Actual", "Classical", "Jazz", "Difference", "Encoded"]
-
+        cmap = ['jet', 'jet']
+        vmin = [0,0,]
+        vmax = [127,127]
+        names = ["Actual", "Classical"]
 
         for i in range(0, plots):
             fig.add_subplot(1,plots,i+1)
@@ -585,18 +595,19 @@ class GenreLSTM(object):
             ax = plt.gca()
             ax.xaxis.tick_top()
 
+            ax.set_xlabel('Sample #')
             if i == 0:
-                ax.set_ylabel('Time Step')
+                ax.set_ylabel('Time window #')
             ax.xaxis.set_label_position('top')
             ax.tick_params(axis='both', labelsize=7)
             fig.subplots_adjust(top=0.85)
             ax.set_title(names[i], y=1.09)
             # plt.tight_layout()
 
-        if self.one_hot:
-            plt.xlim(0,88)
-        else:
-            plt.xlim(0,128)
+        # if self.one_hot:
+        #     plt.xlim(0,88)
+        # else:
+        #     plt.xlim(0,128)
 
         #Don't show the figure and save it
         if not path:
