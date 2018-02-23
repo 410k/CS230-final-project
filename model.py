@@ -366,7 +366,8 @@ class GenreLSTM(object):
         for i, filename in enumerate(os.listdir(input_folder)):
             # if filename.split('.')[-1] == 'npy':
             if filename.split('.')[-1] == 'mat':
-                data = scipy.io.loadmat(filename)
+                filepath = os.path.join(input_folder, filename)
+                data = scipy.io.loadmat(filepath)
                 loaded_x = data['Xin']
                 loaded_y = data['Yout']
                 assert(loaded_x.shape[0] == loaded_y.shape[0])
@@ -483,7 +484,8 @@ class GenreLSTM(object):
         for i, filename in enumerate(os.listdir(input_folder)):
             # if filename.split('.')[-1] == 'npy':
             if filename.split('.')[-1] == 'mat':
-                data = scipy.io.loadmat(filename)
+                filepath = os.path.join(input_folder, filename)
+                data = scipy.io.loadmat(filepath)
                 loaded_x = data['Xin']
                 loaded_y = data['Yout']
                 assert(loaded_x.shape[0] == loaded_y.shape[0])

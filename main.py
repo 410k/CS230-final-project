@@ -135,7 +135,10 @@ def load_training_data(x_path):
         # if filename.split('.')[-1] == 'npy':
             # names.append(filename)
         if filename.split('.')[-1] == 'mat':
-            data = scipy.io.loadmat(filename)
+            # import pdb
+            # pdb.set_trace()
+            filepath = os.path.join(x_path, filename)
+            data = scipy.io.loadmat(filepath)
             loaded_x = data['Xin']
             loaded_y = data['Yout']
             assert(loaded_x.shape[0] == loaded_y.shape[0])
