@@ -10,7 +10,8 @@ matplotlib.pyplot.ioff()
 import scipy.io
 
 class GenreLSTM(object):
-    def __init__(self, dirs, mini=False, bi=False, one_hot=True, input_size=176, output_size=441, num_layers=3, batch_count=8):
+    def __init__(self, dirs, mini=False, bi=False, one_hot=True, input_size=176, 
+        output_size=441, num_layers=1, batch_count=8):
         self.input_size = int(input_size)
         self.output_size = int(output_size)
         self.num_layers = int(num_layers)
@@ -62,6 +63,7 @@ class GenreLSTM(object):
             # doesn't say) are (200,400) and (276,400)
             # with 10 hidden units, shapes are (20,40) and (186,40)
             num_hidden_units = self.input_size
+            num_hidden_units = self.output_size
 
             self.c_cell_fw = tf.contrib.rnn.LSTMBlockCell(num_hidden_units, forget_bias=1.0)
             self.c_cell_fw = tf.contrib.rnn.DropoutWrapper(self.c_cell_fw, input_keep_prob=self.input_keep_prob, output_keep_prob=self.output_keep_prob)
@@ -185,7 +187,9 @@ class GenreLSTM(object):
 
         return opt.apply_gradients(gradients)
 
-    def train(self, data, model=None, starting_epoch=0, clip_grad=True, epochs=1001, input_keep_prob=0.5, output_keep_prob=0.5, learning_rate=0.001 , eval_epoch=10, val_epoch=10, save_epoch=10):
+    def train(self, data, model=None, starting_epoch=0, clip_grad=True, 
+        epochs=1001, input_keep_prob=1, output_keep_prob=1, 
+        learning_rate=0.001 , eval_epoch=5, val_epoch=20, save_epoch=5):
 
         self.data = data
 
@@ -586,11 +590,11 @@ class GenreLSTM(object):
         # vmin = [0,0,0,-10,-1]
         # vmax = [127,127,127,10,1]
         # names = ["Actual", "Classical", "Jazz", "Difference", "Encoded"]
-        graph_items = [out_list[-1]*127, c_out[-1]*127]
+        graph_items = [out_list[-1], c_out[-1]]
         plots = len(graph_items)
         cmap = ['jet', 'jet']
-        vmin = [0,0,]
-        vmax = [127,127]
+        vmin = [-1, -1]
+        vmax = [1, 1]
         names = ["Actual", "Classical"]
 
         for i in range(0, plots):
