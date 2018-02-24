@@ -11,11 +11,11 @@ import scipy.io
 
 class GenreLSTM(object):
     def __init__(self, dirs, input_size, output_size, mini=False, bi=False, 
-        one_hot=True, num_layers=1, batch_count=8):
+        one_hot=True, num_layers=1, batch_size=8):
         self.input_size = int(input_size)
         self.output_size = int(output_size)
         self.num_layers = int(num_layers)
-        self.batch_count = int(batch_count)
+        self.batch_size = int(batch_size)
         self.dirs = dirs
         self.bi = bi
         self.mini = mini
@@ -54,10 +54,10 @@ class GenreLSTM(object):
 
         # tensorboard summaries
         tf.summary.scalar("Loss", self.classical_loss)
-        tf.summary.histogram("Output difference", self.classical_difference)
-        tf.summary.histogram("FC outputs", self.classical_linear_out)
-        tf.summary.histogram("True outputs", self.true_classical_outputs)
-        tf.summary.histogram("RNN outputs", self.classical_outputs)
+        tf.summary.histogram("1. FC outputs", self.classical_linear_out)
+        tf.summary.histogram("1. RNN outputs", self.classical_outputs)
+        tf.summary.histogram("Output difference", self.classical_difference, family='Other')
+        tf.summary.histogram("True outputs", self.true_classical_outputs, family='Other')
         # tf.summary.histogram("FC layer weights", tf.get_variable('fc/layer1/weights'))
         self.summary_op = tf.summary.merge_all()
         self.train_writer = tf.summary.FileWriter(os.path.join(self.dirs['logs_path'], 'train'), graph=self.sess.graph_def)
@@ -127,34 +127,32 @@ class GenreLSTM(object):
 
         classical_batcher = BatchGenerator(self.data["classical"]["X"], 
                                            self.data["classical"]["Y"], 
-                                           self.batch_count, 
-                                           self.input_size, 
-                                           self.output_size, 
-                                           mini=self.mini)
+                                           self.batch_size,
+                                           rebatch_flag=self.mini)
         classical_generator = classical_batcher.batch()
 
-        self.v_classical_batcher, self.validation_files = self.validate("classical")
+        self.validation_batcher, self.validation_files = self.setup_validation("classical")
 
 
         print("[*] Initiating training...", flush=True)
         for epoch in range(starting_epoch, epochs):
             print("[*] Epoch %d" % epoch, flush=True)
             classical_epoch_avg = 0
-            for batch in range(classical_batcher.batch_count):
+            for batch_num in range(classical_batcher.num_batches):
                 batch_X, batch_Y, batch_len = next(classical_generator)
                 batch_len = [batch_len] * len(batch_X)
-                epoch_error, classical_summary, _  =  self.sess.run([self.classical_loss,
-                                                                     self.summary_op,
-                                                                     classical_optimizer], 
+                _, epoch_error, classical_summary  =  self.sess.run([classical_optimizer,
+                                                                     self.classical_loss,
+                                                                     self.summary_op,], 
                                                                      feed_dict={self.inputs: batch_X,
                                                                                 self.true_classical_outputs: batch_Y,
                                                                                 self.seq_len: batch_len,
                                                                                 self.input_keep_prob: input_keep_prob,
                                                                                 self.output_keep_prob: output_keep_prob})
                 classical_epoch_avg += epoch_error
-                print("\tBatch %d/%d, Training MSE for Classical batch: %.9f" % (batch+1, classical_batcher.batch_count, epoch_error), flush=True)
-                self.train_writer.add_summary(classical_summary, epoch*classical_batcher.batch_count + batch)
-            print("[*] Average Training MSE for Classical epoch %d: %.9f" % (epoch, classical_epoch_avg/classical_batcher.batch_count), flush=True)
+                print("\tBatch %d/%d, Training MSE for Classical batch: %.9f" % (batch_num+1, classical_batcher.num_batches, epoch_error), flush=True)
+                self.train_writer.add_summary(classical_summary, epoch*classical_batcher.num_batches + batch_num)
+            print("[*] Average Training MSE for Classical epoch %d: %.9f" % (epoch, classical_epoch_avg/classical_batcher.num_batches), flush=True)
 
             if epoch % val_epoch == 0 and epoch != 0:
                 print("[*] Validating model...", flush=True)
@@ -222,19 +220,21 @@ class GenreLSTM(object):
         return c_loss, c_output
 
 
-    def validate(self, genreType):
+    def setup_validation(self, genreType):
         '''Handles validation set data'''
         input_folder = self.dirs['eval_path']
         X_data, Y_data, filenames = load_data(input_folder)
 
-        validation_generator = BatchGenerator(X_data, Y_data, self.batch_count, 
-            self.input_size, self.output_size, mini=False)
+        validation_generator = BatchGenerator(X_data, 
+                                              Y_data, 
+                                              self.batch_size, 
+                                              rebatch_flag=False)
         return validation_generator, filenames
 
 
     def validation(self, epoch, pred_save=False):
         '''Computes and logs loss of validation set'''
-        validation_batch = self.v_classical_batcher.batch()
+        validation_batch = self.validation_batcher.batch()
         validation_X, validation_Y, input_len = next(validation_batch)
         input_len = [input_len] * len(validation_X)
         c_loss, c_output, c_summary = self.sess.run([self.classical_loss,
@@ -279,8 +279,8 @@ class GenreLSTM(object):
     def evaluate(self, epoch, pred_save=False):
         '''Performs prediction and plots results on validation set.'''
         for i, filename in enumerate(self.validation_files):
-            single_input = np.expand_dims(self.v_classical_batcher.data_x[i], axis=0)
-            single_output = np.expand_dims(self.v_classical_batcher.data_y[i], axis=0)
+            single_input = np.expand_dims(self.validation_batcher.data_x[i], axis=0)
+            single_output = np.expand_dims(self.validation_batcher.data_y[i], axis=0)
             seq_len = [single_input.shape[1]]
             c_loss, c_output, c_summary = self.sess.run([self.classical_loss,
                                                          self.classical_linear_out,

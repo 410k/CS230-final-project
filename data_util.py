@@ -8,21 +8,17 @@ class BatchGenerator(object):
     data_x -- list of input matrices
     data_y -- list of output matrices
     batch_size -- size of batch
-    input_size -- input width
-    output_size -- output width
-    mini -- create subsequences for truncating backprop
-    mini_len -- truncated backprop window'''
+    rebatch -- create subsequences for truncating backprop
+    rebatch_len -- truncated backprop window'''
 
-    def __init__(self, data_x, data_y, batch_size, input_size, output_size, mini=True, mini_len=200):
-        self.input_size = input_size
-        self.output_size = output_size
+    def __init__(self, data_x, data_y, batch_size, rebatch_flag=True, rebatch_len=200):
         self.data_x = data_x
         self.data_y = data_y
         self.batch_size = batch_size
-        self.batch_count = len(range(0, len(self.data_x), self.batch_size))
-        self.batch_length = None
-        self.mini = mini
-        self.mini_len = mini_len
+        self.rebatch_flag = rebatch_flag
+        self.rebatch_len = rebatch_len
+
+        self.num_batches = len(range(0, len(self.data_x), self.batch_size))
 
 
     def batch(self):
@@ -46,8 +42,8 @@ class BatchGenerator(object):
                     
                 # add any necessary padding and reformat to the list to a matrix
                 input_batch, output_batch = self._pad(input_batch_list, output_batch_list)
-                if self.mini:
-                    input_batch, output_batch = self._rebatch(input_batch, output_batch, self.mini_len)
+                if self.rebatch_flag:
+                    input_batch, output_batch = self._rebatch(input_batch, output_batch, self.rebatch_len)
                 seq_len = input_batch.shape[1]
 
                 yield input_batch, output_batch, seq_len
