@@ -110,21 +110,49 @@ class BatchGenerator(object):
 
 
 
+# def load_data(dirpath):
+#     X_data = []
+#     Y_data = []
+#     filenames = []
+#     print('[*] Loading data...', flush=True)
+#     listing = os.listdir(dirpath)
+#     for i, filename in enumerate(listing):
+#         if filename.split('.')[-1] == 'mat':
+#             filepath = os.path.join(dirpath, filename)
+#             data = scipy.io.loadmat(filepath)
+#             loaded_x = data['Xin']
+#             loaded_y = data['Yout']
+#             assert(loaded_x.shape[0] == loaded_y.shape[0])
+#             X_data.append(loaded_x)
+#             Y_data.append(loaded_y)
+#             filenames.append(filename)
+
+#     return X_data, Y_data, filenames
+
+
 def load_data(dirpath):
     X_data = []
     Y_data = []
     filenames = []
     print('[*] Loading data...', flush=True)
-    listing = os.listdir(dirpath)
-    for i, filename in enumerate(listing):
-        if filename.split('.')[-1] == 'mat':
-            filepath = os.path.join(dirpath, filename)
-            data = scipy.io.loadmat(filepath)
-            loaded_x = data['Xin']
-            loaded_y = data['Yout']
-            assert(loaded_x.shape[0] == loaded_y.shape[0])
-            X_data.append(loaded_x)
-            Y_data.append(loaded_y)
+
+    x_path = os.path.join('data/test/inputs/jazz')
+    y_path = os.path.join('data/test/velocities/jazz')
+
+    for i, filename in enumerate(os.listdir(x_path)):
+        if filename.split('.')[-1] == 'npy':
             filenames.append(filename)
+
+    for i, filename in enumerate(filenames):
+        abs_x_path = os.path.join(x_path, filename)
+        abs_y_path = os.path.join(y_path, filename)
+        loaded_x = np.load(abs_x_path)
+
+        X_data.append(loaded_x)
+
+        loaded_y = np.load(abs_y_path)
+        loaded_y = loaded_y/127
+        Y_data.append(loaded_y)
+        assert X_data[i].shape[0] == Y_data[i].shape[0]
 
     return X_data, Y_data, filenames
