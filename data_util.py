@@ -75,6 +75,9 @@ class BatchGenerator(object):
         example_len = input_batch.shape[1]
         pad_amount = example_len % rebatch_example_len
 
+        if example_len < rebatch_example_len:
+            return input_batch, output_batch
+
         mod_input_batch = []
         mod_output_batch = []
 
@@ -100,30 +103,14 @@ class BatchGenerator(object):
 
     def _list_to_batch(self, input_batch, output_batch):
         # format data from list to [example #, # time points, pitch encoding / # samples]
-        new_input_batch = np.stack(input_batch)
-        new_output_batch = np.stack(output_batch)
+        if len(input_batch) == 1:
+            new_input_batch = np.expand_dims(input_batch[0], axis=0)
+            new_output_batch = np.expand_dims(output_batch[0], axis=0)
+        else:
+            new_input_batch = np.stack(input_batch)
+            new_output_batch = np.stack(output_batch)
         return new_input_batch, new_output_batch
 
-
-
-# def load_data(dirpath):
-#     X_data = []
-#     Y_data = []
-#     filenames = []
-#     print('[*] Loading data...', flush=True)
-#     listing = os.listdir(dirpath)
-#     for i, filename in enumerate(listing):
-#         if filename.split('.')[-1] == 'mat':
-#             filepath = os.path.join(dirpath, filename)
-#             data = scipy.io.loadmat(filepath)
-#             loaded_x = data['Xin']
-#             loaded_y = data['Yout']
-#             assert(loaded_x.shape[0] == loaded_y.shape[0])
-#             X_data.append(loaded_x)
-#             Y_data.append(loaded_y)
-#             filenames.append(filename)
-
-#     return X_data, Y_data, filenames
 
 
 def load_data(dirpath):
@@ -131,24 +118,49 @@ def load_data(dirpath):
     Y_data = []
     filenames = []
     print('[*] Loading data...', flush=True)
-
-    x_path = os.path.join('data/test/inputs/jazz')
-    y_path = os.path.join('data/test/velocities/jazz')
-
-    for i, filename in enumerate(os.listdir(x_path)):
-        if filename.split('.')[-1] == 'npy':
+    listing = os.listdir(dirpath)
+    for i, filename in enumerate(listing):
+        if filename.split('.')[-1] == 'mat':
+            filepath = os.path.join(dirpath, filename)
+            data = scipy.io.loadmat(filepath)
+            loaded_x = data['Xin']
+            loaded_y = data['Yout']
+            assert(loaded_x.shape[0] == loaded_y.shape[0])
+            # X_data.append(loaded_x)
+            loaded_x = data['Yout'][500:510,:].flatten()
+            loaded_y = data['Yout'][1000:1010,:].flatten()
+            loaded_x = np.reshape(loaded_x, (1,-1))
+            loaded_y = np.reshape(loaded_y, (1,-1))
+            X_data.append(loaded_x)
+            Y_data.append(loaded_y)
             filenames.append(filename)
 
-    for i, filename in enumerate(filenames):
-        abs_x_path = os.path.join(x_path, filename)
-        abs_y_path = os.path.join(y_path, filename)
-        loaded_x = np.load(abs_x_path)
-
-        X_data.append(loaded_x)
-
-        loaded_y = np.load(abs_y_path)
-        loaded_y = loaded_y/127
-        Y_data.append(loaded_y)
-        assert X_data[i].shape[0] == Y_data[i].shape[0]
-
     return X_data, Y_data, filenames
+
+
+# def load_data(dirpath):
+#     X_data = []
+#     Y_data = []
+#     filenames = []
+#     print('[*] Loading data...', flush=True)
+
+#     x_path = os.path.join('data/test/inputs/jazz')
+#     y_path = os.path.join('data/test/velocities/jazz')
+
+#     for i, filename in enumerate(os.listdir(x_path)):
+#         if filename.split('.')[-1] == 'npy':
+#             filenames.append(filename)
+
+#     for i, filename in enumerate(filenames):
+#         abs_x_path = os.path.join(x_path, filename)
+#         abs_y_path = os.path.join(y_path, filename)
+#         loaded_x = np.load(abs_x_path)
+
+#         X_data.append(loaded_x)
+
+#         loaded_y = np.load(abs_y_path)
+#         loaded_y = loaded_y/127
+#         Y_data.append(loaded_y)
+#         assert X_data[i].shape[0] == Y_data[i].shape[0]
+
+#     return X_data, Y_data, filenames
