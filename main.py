@@ -5,6 +5,7 @@ import numpy as np
 from model import GenreLSTM
 
 import scipy.io
+from data_util import load_data
 
 
 parser = argparse.ArgumentParser(description='How to run this')
@@ -107,82 +108,21 @@ def setup_dir():
             'x_path': x_path,
             'y_path': y_path
         }
-
-    # print main_path
-    # print current_run
-    # print model_path
-    # print logs_path
-    # print png_path
-    # print eval_path
-    # print x_path
-    # print y_path
     return dirs
 
-def load_training_data(x_path):
-# def load_training_data(x_path, y_path, genre):
-    X_data = []
-    Y_data = []
-    names = []
-    print('[*] Loading data...', flush=True)
-
-    # x_path = os.path.join(x_path, genre)
-    # y_path = os.path.join(y_path, genre)
-
-    # import pdb
-    # pdb.set_trace()
-
-    for i, filename in enumerate(os.listdir(x_path)):
-        # if filename.split('.')[-1] == 'npy':
-            # names.append(filename)
-        if filename.split('.')[-1] == 'mat':
-            # import pdb
-            # pdb.set_trace()
-            filepath = os.path.join(x_path, filename)
-            data = scipy.io.loadmat(filepath)
-            loaded_x = data['Xin']
-            loaded_y = data['Yout']
-            assert(loaded_x.shape[0] == loaded_y.shape[0])
-            X_data.append(loaded_x)
-            Y_data.append(loaded_y)
-
-    # for i, filename in enumerate(names):
-    #     abs_x_path = os.path.join(x_path,filename)
-    #     abs_y_path = os.path.join(y_path,filename)
-    #     loaded_x = np.load(abs_x_path)
-
-    #     X_data.append(loaded_x)
-
-    #     loaded_y = np.load(abs_y_path)
-    #     loaded_y = loaded_y/127
-    #     Y_data.append(loaded_y)
-    #     assert X_data[i].shape[0] == Y_data[i].shape[0]
-
-    return X_data, Y_data
-
-def prepare_data():
-    dirs = setup_dir()
-    data = {}
-    data["classical"] = {}
-    # data["jazz"] = {}
-
-    # c_train_X , c_train_Y = load_training_data(dirs['x_path'], dirs['y_path'], "classical")
-    c_train_X , c_train_Y = load_training_data(dirs['x_path'])
-
-    data["classical"]["X"] = c_train_X
-    data["classical"]["Y"] = c_train_Y
-
-    # j_train_X , j_train_Y = load_training_data(dirs['x_path'], dirs['y_path'], "jazz")
-
-    # data["jazz"]["X"] = j_train_X
-    # data["jazz"]["Y"] = j_train_Y
-    return dirs, data
 
 def main():
     tf.logging.set_verbosity(tf.logging.ERROR)
 
-    dirs, data = prepare_data()
+    dirs = setup_dir()
+    data = {}
+    data['classical'] = {}
+    data['classical']['X'], data['classical']['Y'], _ = load_data(dirs['x_path'])
+    input_size = data['classical']['X'][0].shape[1]
+    output_size = data['classical']['Y'][0].shape[1]
 
-    network  = GenreLSTM(dirs, input_size=176, mini=True, bi=args.bi)
+    network  = GenreLSTM(dirs, input_size=input_size, output_size=output_size, 
+                         mini=True, bi=args.bi)
     network.prepare_model()
 
     if not args.forward_only:

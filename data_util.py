@@ -1,4 +1,6 @@
 import numpy as np
+import os
+import scipy.io
 
 class BatchGenerator(object):
     '''Generator for returning shuffled batches.
@@ -24,82 +26,105 @@ class BatchGenerator(object):
 
 
     def batch(self):
-        while True:
-            idxs = np.arange(0, len(self.data_x))
-            np.random.shuffle(idxs)
-            # np.random.shuffle(idxs)
-            shuff_x = []
-            shuff_y = []
-            for i in idxs:
-                shuff_x.append(self.data_x[i])
-                shuff_y.append(self.data_y[i])
+        while True:                 # prevents a StopIteration error from being thrown
+            # shuffle the data
+            inds = np.arange(0, len(self.data_x))
+            np.random.shuffle(inds)
+            shuffled_x = []
+            shuffled_y = []
+            for i in inds:
+                shuffled_x.append(self.data_x[i])
+                shuffled_y.append(self.data_y[i])
 
-            for batch_idx in range(0, len(self.data_x), self.batch_size):
-                input_batch = []
-                output_batch = []
-                for j in range(batch_idx, min(batch_idx+self.batch_size,len(self.data_x)), 1):
-                    input_batch.append(shuff_x[j])
-                    output_batch.append(shuff_y[j])
-                input_batch, output_batch, seq_len = self.pad(input_batch, output_batch)
+            for batch_ind in range(0, len(self.data_x), self.batch_size):
+                # create a batch list of the selected examples
+                input_batch_list = []
+                output_batch_list = []
+                for example_ind in range(batch_ind, min(batch_ind+self.batch_size, len(self.data_x))):
+                    input_batch_list.append(shuffled_x[example_ind])
+                    output_batch_list.append(shuffled_y[example_ind])
+                    
+                # add any necessary padding and reformat to the list to a matrix
+                input_batch, output_batch = self._pad(input_batch_list, output_batch_list)
+                if self.mini:
+                    input_batch, output_batch = self._rebatch(input_batch, output_batch, self.mini_len)
+                seq_len = input_batch.shape[1]
+
                 yield input_batch, output_batch, seq_len
 
 
-    def pad(self, sequence_X, sequence_Y):
-        current_batch = len(sequence_X)
-        padding_X = [0]*self.input_size
-        padding_Y = [0]*self.output_size
+    def _pad(self, input_batch_list, output_batch_list):
+        current_batch_size = len(input_batch_list)
 
-        lens = [sequence_X[i].shape[0] for i in range(len(sequence_X))]
-        # lens2 = [sequence_Y[i].shape[0] for i in range(len(sequence_Y))]
-        #
-        # import pdb
-        # pdb.set_trace()
+        example_lens = [input_batch_list[i].shape[0] for i in range(0, current_batch_size)]
+        example_max_len = max(example_lens)
 
-        max_lens = max(lens)
-        # max_lens2 = max(lens2)
-        #
-        # assert max_lens == max_lens2
-        # print(max_lens)
-        for i, x in enumerate(lens):
-            length = x
-            a = list(sequence_X[i])     # cast array as a list
-            b = list(sequence_Y[i])
-            while length < max_lens:
-                a.append(padding_X)     # keep adding rows
-                b.append(padding_Y)
-                length+=1
+        mod_input_batch = []
+        mod_output_batch = []
 
-            if self.mini:               # make number of rows a multiple of mini_len (maybe for reducing train time?)
-                while length % self.mini_len != 0:
-                    a.append(padding_X)
-                    b.append(padding_Y)
-                    length+=1
+        # pad all examples so that they have the same length
+        for i, example_len in enumerate(example_lens):
+            pad_amount = example_max_len - example_len
+            x = np.pad(input_batch_list[i], ((pad_amount,0), (0,0)), 'constant')
+            y = np.pad(output_batch_list[i], ((pad_amount,0), (0,0)), 'constant')
+            mod_input_batch.append(x)
+            mod_output_batch.append(y)
 
-            sequence_X[i] = np.array(a) # recast as numpy array
-            sequence_Y[i] = np.array(b)
-            # for x in minis:
-            #     mini_X.append(np.array(a[x:min(x+self.mini,x)]))
-            #     mini_Y.append(np.array(b[x:min(x+self.mini,x)]))
-            # print sequence_X[i].shape
-            # print sequence_Y[i].shape
+        new_input_batch, new_output_batch = self._list_to_batch(mod_input_batch, mod_output_batch)
+        return new_input_batch, new_output_batch
 
-        # assert all(x.shape == (max_lens, self.input_size) for x in sequence_X)
-        # assert all(y.shape == (max_lens, self.output_size) for y in sequence_Y)
 
-        sequence_X = np.vstack([np.expand_dims(x, 1) for x in sequence_X])
-        sequence_Y = np.vstack([np.expand_dims(y, 1) for y in sequence_Y])
+    def _rebatch(self, input_batch, output_batch, rebatch_example_len):
+        current_batch_size = input_batch.shape[0]
+        example_len = input_batch.shape[1]
+        pad_amount = example_len % rebatch_example_len
 
-        if not self.mini:
-            mini_batches = 1
-            max_lens = max(lens)
-        else:
-            mini_batches = int(length/self.mini_len)
-            max_lens = self.mini_len
+        mod_input_batch = []
+        mod_output_batch = []
 
-        # import pdb
-        # pdb.set_trace()
+        for ind in range(0, current_batch_size):
+            # pad each example
+            example_x = input_batch[ind,:,:]
+            example_y = output_batch[ind,:,:]
+            x = np.pad(example_x, ((pad_amount,0), (0,0)), 'constant')
+            y = np.pad(example_y, ((pad_amount,0), (0,0)), 'constant')
+            # generate multiple new examples from each original example
+            num_new_examples = x.shape[0] // rebatch_example_len
+            for i in range(0, num_new_examples):
+                start_ind = i * rebatch_example_len
+                end_ind = (i+1) * rebatch_example_len
+                tmp_x = x[start_ind:end_ind, :]
+                tmp_y = y[start_ind:end_ind, :]
+                mod_input_batch.append(tmp_x)
+                mod_output_batch.append(tmp_y)
 
-        sequence_X = np.reshape(sequence_X, [current_batch*mini_batches, max_lens, self.input_size])
-        sequence_Y = np.reshape(sequence_Y, [current_batch*mini_batches, max_lens, self.output_size])
+        new_input_batch, new_output_batch = self._list_to_batch(mod_input_batch, mod_output_batch)
+        return new_input_batch, new_output_batch
 
-        return sequence_X, sequence_Y, max_lens
+
+    def _list_to_batch(self, input_batch, output_batch):
+        # format data from list to [example #, # time points, pitch encoding / # samples]
+        new_input_batch = np.stack(input_batch)
+        new_output_batch = np.stack(output_batch)
+        return new_input_batch, new_output_batch
+
+
+
+def load_data(dirpath):
+    X_data = []
+    Y_data = []
+    filenames = []
+    print('[*] Loading data...', flush=True)
+    listing = os.listdir(dirpath)
+    for i, filename in enumerate(listing):
+        if filename.split('.')[-1] == 'mat':
+            filepath = os.path.join(dirpath, filename)
+            data = scipy.io.loadmat(filepath)
+            loaded_x = data['Xin']
+            loaded_y = data['Yout']
+            assert(loaded_x.shape[0] == loaded_y.shape[0])
+            X_data.append(loaded_x)
+            Y_data.append(loaded_y)
+            filenames.append(filename)
+
+    return X_data, Y_data, filenames
