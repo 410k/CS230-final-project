@@ -52,6 +52,13 @@ class GenreLSTM(object):
         self.classical_loss = tf.losses.mean_squared_error(self.true_classical_outputs,
                                                            self.classical_linear_out)
 
+        # variables_names =[v.name for v in tf.trainable_variables()]
+        # values = self.sess.run(variables_names)
+        # for k, v in zip(variables_names, values):
+        #     print(k)
+        # import pdb
+        # pdb.set_trace()
+
         # tensorboard summaries
         tf.summary.scalar("Loss", self.classical_loss)
         tf.summary.histogram("1. FC outputs", self.classical_linear_out)
@@ -292,9 +299,9 @@ class GenreLSTM(object):
                                                                     self.true_classical_outputs: single_output})
             self.plot_evaluation(epoch, filename, c_output, c_output, c_output, single_output)
             
-            tmp_dict = {'Y_output': c_output}
+            save_dict = {'model_output': c_output, 'true_output': single_output}
             filepath = os.path.join(self.dirs['pred_path'], filename.split('.')[0] + "-e%d" % (epoch)+".mat")
-            scipy.io.savemat(filepath, tmp_dict)
+            scipy.io.savemat(filepath, save_dict)
 
 
     def plot_evaluation(self, epoch, filename, c_out, j_out, e_out, out_list, path=None):

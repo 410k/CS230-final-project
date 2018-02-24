@@ -127,10 +127,10 @@ def load_data(dirpath):
             loaded_y = data['Yout']
             assert(loaded_x.shape[0] == loaded_y.shape[0])
             # X_data.append(loaded_x)
-            loaded_x = data['Yout'][500:510,:].flatten()
-            loaded_y = data['Yout'][1000:1010,:].flatten()
-            loaded_x = np.reshape(loaded_x, (1,-1))
-            loaded_y = np.reshape(loaded_y, (1,-1))
+            loaded_x = data['Xin'][1000:1005,:]
+            loaded_y = data['Yout'][1000:1005,:]
+            # loaded_x = np.reshape(loaded_x, (1,-1))
+            # loaded_y = np.reshape(loaded_y, (1,-1))
             X_data.append(loaded_x)
             Y_data.append(loaded_y)
             filenames.append(filename)
