@@ -11,7 +11,7 @@ import scipy.io
 
 class GenreLSTM(object):
     def __init__(self, dirs, input_size, output_size, mini=False, bi=False, 
-        one_hot=True, num_layers=1, batch_size=8):
+        one_hot=True, num_layers=2, batch_size=8):
         self.input_size = int(input_size)
         self.output_size = int(output_size)
         self.num_layers = int(num_layers)
@@ -34,11 +34,6 @@ class GenreLSTM(object):
         self.output_keep_prob = tf.placeholder(tf.float32, None, name='output_keep_prob')
 
         # network architecture
-        # need this for shape of weights to match
-        # only throws error when num_layers > 1
-        # with 100 hidden units, shapes of some variables (error message
-        # doesn't say) are (200,400) and (276,400)
-        # with 10 hidden units, shapes are (20,40) and (186,40)
         self.num_hidden_units = 256
         # self.prepare_unidirectional()
         self.prepare_bidirectional()
@@ -71,16 +66,19 @@ class GenreLSTM(object):
         self.test_writer = tf.summary.FileWriter(os.path.join(self.dirs['logs_path'], 'test'), graph=self.sess.graph_def)
 
 
+    def create_GRU_cell(self):
+        cell = tf.contrib.rnn.GRUCell(self.num_hidden_units)
+        # cell = tf.contrib.rnn.DropoutWrapper(self.rnn_cell, 
+        #                                      input_keep_prob=self.input_keep_prob, 
+        #                                      output_keep_prob=self.output_keep_prob)
+        return cell
+
+
     def prepare_unidirectional(self):
         print("[*] Preparing unidirectional dynamic RNN...", flush=True)
         with tf.variable_scope("encode") as scope:
-            self.rnn_cell = tf.contrib.rnn.LSTMBlockCell(self.num_hidden_units, forget_bias=1.0)
-            # self.rnn_cell = tf.contrib.rnn.DropoutWrapper(self.rnn_cell, 
-            #                                             input_keep_prob=self.input_keep_prob, 
-            #                                             output_keep_prob=self.output_keep_prob)
-            if self.num_layers > 1:
-                self.rnn_cell  = tf.contrib.rnn.MultiRNNCell([self.rnn_cell]*self.num_layers)
-
+            self.rnn_cell = tf.contrib.rnn.MultiRNNCell(
+                [self.create_GRU_cell() for _ in range(self.num_layers)])
             self.classical_outputs, last_state = tf.nn.dynamic_rnn(
                                                         self.rnn_cell,
                                                         self.inputs,
@@ -91,18 +89,10 @@ class GenreLSTM(object):
     def prepare_bidirectional(self):
         print("[*] Preparing bidirectional dynamic RNN...", flush=True)
         with tf.variable_scope("encode") as scope:
-            self.rnn_cell_fw = tf.contrib.rnn.LSTMBlockCell(self.num_hidden_units, forget_bias=1.0)
-            # self.rnn_cell_fw = tf.contrib.rnn.DropoutWrapper(self.rnn_cell_fw, 
-            #                                                input_keep_prob=self.input_keep_prob, 
-            #                                                output_keep_prob=self.output_keep_prob)
-            self.rnn_cell_bw = tf.contrib.rnn.LSTMBlockCell(self.num_hidden_units, forget_bias=1.0)
-            # self.rnn_cell_bw = tf.contrib.rnn.DropoutWrapper(self.rnn_cell_bw, 
-            #                                                input_keep_prob=self.input_keep_prob, 
-            #                                                output_keep_prob=self.output_keep_prob)
-            if self.num_layers > 1:
-                self.rnn_cell_fw  = tf.contrib.rnn.MultiRNNCell([self.rnn_cell_fw]*self.num_layers)
-                self.rnn_cell_bw  = tf.contrib.rnn.MultiRNNCell([self.rnn_cell_bw]*self.num_layers)
-
+            self.rnn_cell_fw = tf.contrib.rnn.MultiRNNCell(
+                [self.create_GRU_cell() for _ in range(self.num_layers)])
+            self.rnn_cell_bw = tf.contrib.rnn.MultiRNNCell(
+                [self.create_GRU_cell() for _ in range(self.num_layers)])
             (self.rnn_fw, self.rnn_bw), last_state = tf.nn.bidirectional_dynamic_rnn(
                                                         self.rnn_cell_fw,
                                                         self.rnn_cell_bw,
