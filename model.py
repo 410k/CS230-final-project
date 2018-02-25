@@ -40,8 +40,8 @@ class GenreLSTM(object):
         # doesn't say) are (200,400) and (276,400)
         # with 10 hidden units, shapes are (20,40) and (186,40)
         self.num_hidden_units = 256
-        self.prepare_unidirectional()
-        # self.prepare_bidirectional()
+        # self.prepare_unidirectional()
+        self.prepare_bidirectional()
         with tf.variable_scope('fc') as scope:
             self.classical_linear_out = tf.contrib.layers.fully_connected(self.classical_outputs, 
                                                                           self.output_size, 
@@ -74,15 +74,15 @@ class GenreLSTM(object):
     def prepare_unidirectional(self):
         print("[*] Preparing unidirectional dynamic RNN...", flush=True)
         with tf.variable_scope("encode") as scope:
-            self.c_cell = tf.contrib.rnn.LSTMBlockCell(self.num_hidden_units, forget_bias=1.0)
-            self.c_cell = tf.contrib.rnn.DropoutWrapper(self.c_cell, 
-                                                        input_keep_prob=self.input_keep_prob, 
-                                                        output_keep_prob=self.output_keep_prob)
+            self.rnn_cell = tf.contrib.rnn.LSTMBlockCell(self.num_hidden_units, forget_bias=1.0)
+            # self.rnn_cell = tf.contrib.rnn.DropoutWrapper(self.rnn_cell, 
+            #                                             input_keep_prob=self.input_keep_prob, 
+            #                                             output_keep_prob=self.output_keep_prob)
             if self.num_layers > 1:
-                self.c_cell  = tf.contrib.rnn.MultiRNNCell([self.c_cell]*self.num_layers)
+                self.rnn_cell  = tf.contrib.rnn.MultiRNNCell([self.rnn_cell]*self.num_layers)
 
             self.classical_outputs, last_state = tf.nn.dynamic_rnn(
-                                                        self.c_cell,
+                                                        self.rnn_cell,
                                                         self.inputs,
                                                         sequence_length=self.seq_len,
                                                         dtype=tf.float32)
@@ -91,27 +91,25 @@ class GenreLSTM(object):
     def prepare_bidirectional(self):
         print("[*] Preparing bidirectional dynamic RNN...", flush=True)
         with tf.variable_scope("encode") as scope:
-            self.c_cell_fw = tf.contrib.rnn.LSTMBlockCell(self.num_hidden_units, forget_bias=1.0)
-            self.c_cell_fw = tf.contrib.rnn.DropoutWrapper(self.c_cell_fw, 
-                                                           input_keep_prob=self.input_keep_prob, 
-                                                           output_keep_prob=self.output_keep_prob)
-
-            self.c_cell_bw = tf.contrib.rnn.LSTMBlockCell(self.num_hidden_units, forget_bias=1.0)
-            self.c_cell_bw = tf.contrib.rnn.DropoutWrapper(self.c_cell_bw, 
-                                                           input_keep_prob=self.input_keep_prob, 
-                                                           output_keep_prob=self.output_keep_prob)
-
+            self.rnn_cell_fw = tf.contrib.rnn.LSTMBlockCell(self.num_hidden_units, forget_bias=1.0)
+            # self.rnn_cell_fw = tf.contrib.rnn.DropoutWrapper(self.rnn_cell_fw, 
+            #                                                input_keep_prob=self.input_keep_prob, 
+            #                                                output_keep_prob=self.output_keep_prob)
+            self.rnn_cell_bw = tf.contrib.rnn.LSTMBlockCell(self.num_hidden_units, forget_bias=1.0)
+            # self.rnn_cell_bw = tf.contrib.rnn.DropoutWrapper(self.rnn_cell_bw, 
+            #                                                input_keep_prob=self.input_keep_prob, 
+            #                                                output_keep_prob=self.output_keep_prob)
             if self.num_layers > 1:
-                self.c_cell_fw  = tf.contrib.rnn.MultiRNNCell([self.c_cell_fw]*self.num_layers)
-                self.c_cell_bw  = tf.contrib.rnn.MultiRNNCell([self.c_cell_bw]*self.num_layers)
+                self.rnn_cell_fw  = tf.contrib.rnn.MultiRNNCell([self.rnn_cell_fw]*self.num_layers)
+                self.rnn_cell_bw  = tf.contrib.rnn.MultiRNNCell([self.rnn_cell_bw]*self.num_layers)
 
-            (self.c_fw, self.c_bw), last_state = tf.nn.bidirectional_dynamic_rnn(
-                                                        self.c_cell_fw,
-                                                        self.c_cell_bw,
+            (self.rnn_fw, self.rnn_bw), last_state = tf.nn.bidirectional_dynamic_rnn(
+                                                        self.rnn_cell_fw,
+                                                        self.rnn_cell_bw,
                                                         self.inputs,
                                                         sequence_length=self.seq_len,
                                                         dtype=tf.float32)
-            self.classical_outputs  = tf.concat([self.c_fw, self.c_bw], axis=2)
+            self.classical_outputs  = tf.concat([self.rnn_fw, self.rnn_bw], axis=2)
 
 
     def train(self, data, model=None, starting_epoch=0, clip_grad=False, 
@@ -161,9 +159,9 @@ class GenreLSTM(object):
                 self.train_writer.add_summary(classical_summary, epoch*classical_batcher.num_batches + batch_num)
             print("[*] Average Training MSE for Classical epoch %d: %.9f" % (epoch, classical_epoch_avg/classical_batcher.num_batches), flush=True)
 
-            if epoch % val_epoch == 0 and epoch != 0:
-                print("[*] Validating model...", flush=True)
-                self.validation(epoch)
+            # if epoch % val_epoch == 0 and epoch != 0:
+            #     print("[*] Validating model...", flush=True)
+            #     self.validation(epoch)
 
             if epoch % save_epoch == 0 :
                 self.save(epoch)
