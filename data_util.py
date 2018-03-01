@@ -123,16 +123,20 @@ def load_data(dirpath):
         if filename.split('.')[-1] == 'mat':
             filepath = os.path.join(dirpath, filename)
             data = scipy.io.loadmat(filepath)
-            loaded_x = data['Xin']
+            loaded_x = data['X']
             loaded_y = data['Yout']
             assert(loaded_x.shape[0] == loaded_y.shape[0])
-            # X_data.append(loaded_x)
-            loaded_x = data['Xin'][1000:1005,:]
-            loaded_y = data['Yout'][1000:1005,:]
-            # loaded_x = np.reshape(loaded_x, (1,-1))
-            # loaded_y = np.reshape(loaded_y, (1,-1))
-            X_data.append(loaded_x)
-            Y_data.append(loaded_y)
+            if len(loaded_x.shape) == 3:
+                # if the data is 3D, then it has already been formatted into segments
+                # make sure each segment is a separate entry
+                for ind in range(loaded_x.shape[0]):
+                    X_data.append(loaded_x[ind,:,:])
+                    Y_data.append(loaded_y[ind,:,:])
+            else:
+                # if the data is 2D, it is its own segment
+                # if the segment is too large, the BatchGenerator will create smaller segments
+                X_data.append(loaded_x)
+                Y_data.append(loaded_y)
             filenames.append(filename)
 
     return X_data, Y_data, filenames
