@@ -71,15 +71,9 @@ def setup_dir():
     main_path = args.runs_dir
     current_run = os.path.join(main_path, args.current_run)
 
-    files_path = args.data_dir
-    files_path = os.path.join(files_path, args.data_set)
-
-    # x_path = os.path.join(files_path, 'inputs')
-    # y_path = os.path.join(files_path, 'velocities')
-    # eval_path = os.path.join(files_path, 'eval')
-    x_path = files_path
-    y_path = files_path
-    eval_path = os.path.join(files_path, 'eval')
+    data_path = args.data_dir
+    train_path = os.path.join(data_path, 'train')
+    train_dev_path = os.path.join(data_path, 'train_dev')
 
     model_path = os.path.join(current_run, 'model')
     logs_path = os.path.join(current_run, 'tmp')
@@ -103,10 +97,9 @@ def setup_dir():
             'model_path': model_path,
             'logs_path': logs_path,
             'png_path': png_path,
-            'eval_path': eval_path,
-            'pred_path': pred_path,
-            'x_path': x_path,
-            'y_path': y_path
+            'train_path': train_path,
+            'train_dev_path': train_dev_path,
+            'pred_path': pred_path
         }
     return dirs
 
@@ -117,7 +110,7 @@ def main():
     dirs = setup_dir()
     data = {}
     data['classical'] = {}
-    data['classical']['X'], data['classical']['Y'], _ = load_data(dirs['x_path'])
+    data['classical']['X'], data['classical']['Y'], _ = load_data(dirs['train_path'])
     input_size = data['classical']['X'][0].shape[1]
     output_size = data['classical']['Y'][0].shape[1]
 

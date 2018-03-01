@@ -217,7 +217,7 @@ class GenreLSTM(object):
 
     def setup_validation(self, genreType):
         '''Handles validation set data'''
-        input_folder = self.dirs['eval_path']
+        input_folder = self.dirs['train_dev_path']
         X_data, Y_data, filenames = load_data(input_folder)
 
         validation_generator = BatchGenerator(X_data, 
@@ -243,32 +243,6 @@ class GenreLSTM(object):
 
         print("[*] Average Test MSE for Classical epoch %d: %.9f" % (epoch, c_loss), flush=True)
         self.test_writer.add_summary(c_summary, epoch)
-
-
-    def eval_set(self, genreType):
-        '''Loads validation set.'''
-        input_folder = self.dirs['eval_path']
-
-        in_list = []
-        out_list = []
-        filenames = []
-        input_lens = []
-
-        for i, filename in enumerate(os.listdir(input_folder)):
-            # if filename.split('.')[-1] == 'npy':
-            if filename.split('.')[-1] == 'mat':
-                filepath = os.path.join(input_folder, filename)
-                data = scipy.io.loadmat(filepath)
-                loaded_x = data['Xin']
-                loaded_y = data['Yout']
-                assert(loaded_x.shape[0] == loaded_y.shape[0])
-                in_list.append([loaded_x])
-                out_list.append([loaded_y])
-                filenames.append(filename)
-                input_len = [len(loaded_x)]
-                input_lens.append(input_len)
-
-        return in_list, out_list, input_lens, filenames
 
 
     def evaluate(self, epoch, pred_save=False):
