@@ -115,7 +115,7 @@ def main():
     output_size = data['classical']['Y'][0].shape[1]
 
     network  = GenreLSTM(dirs, input_size=input_size, output_size=output_size, 
-                         mini=True, bi=args.bi)
+                         mini=True, bi=args.bi, batch_size=256)
     network.prepare_model()
 
     if not args.forward_only:
