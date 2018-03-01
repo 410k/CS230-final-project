@@ -127,28 +127,32 @@ def main():
 
     if not args.forward_only:
         if args.load_model:
+            # assumes that model name is [name]-[e][epoch_number]
             loaded_epoch = args.load_model.split('.')[0]
             loaded_epoch = loaded_epoch.split('-')[-1]
             loaded_epoch = loaded_epoch[1:]
-            print("[*] Loading " + args.load_model + " and continuing from " + loaded_epoch + ".", flush=True)
+            print("[*] Loading " + args.load_model + " and continuing from " + loaded_epoch, flush=True)
             loaded_epoch = int(loaded_epoch)
-            network.train(data, model=args.load_model, starting_epoch=loaded_epoch+1)
+            model = args.load_model
+            starting_epoch = loaded_epoch+1
         elif args.load_last:
+            # list all the .ckpt files in a tuple (epoch, model_name)
             tree = os.listdir(dirs["model_path"])
             tree.remove('checkpoint')
             files = [(int(file.split('.')[0].split('-')[-1][1:]), file.split('.')[0]) for file in tree]
+            # find the properties of the last checkpoint
             files.sort(key = lambda t: t[0])
-            # print files
-            last = files[-1][1]
-            last = last + ".ckpt"
-            loaded_epoch = files[-1][0]
-            # loaded_epoch = last.split('-')[-1]
-            # loaded_epoch = loaded_epoch[1:]
-            # last = last + ".ckpt"
-            print("[*] Loading " + last + " and continuing from " + str(loaded_epoch) + ".", flush=True)
-            network.train(data, model=last, starting_epoch=loaded_epoch+1)
+            target_file = files[-1]
+            loaded_epoch = target_file[0]
+            model_name = target_file[1]
+            model = model_name + ".ckpt"
+            print("[*] Loading " + model + " and continuing from epoch " + str(loaded_epoch), flush=True)
+            starting_epoch = loaded_epoch+1
         else:
-            network.train(data, epochs=101)
+            model = None
+            starting_epoch = 0
+        network.train(data, model=model, starting_epoch=starting_epoch, 
+                      epochs=1001, eval_epoch=10, save_epoch=10)
     else:
         network.load(args.load_model)
 
