@@ -287,7 +287,9 @@ class GenreLSTM(object):
                                                                     self.true_classical_outputs: single_output})
             self.plot_evaluation(epoch, filename, c_output, c_output, c_output, single_output)
             
-            save_dict = {'model_output': c_output, 'true_output': single_output}
+            save_dict = {'model_output': c_output, 
+                         'true_output': single_output,
+                         'input': single_input}
             filepath = os.path.join(self.dirs['pred_path'], filename.split('.')[0] + "-e%d" % (epoch)+".mat")
             scipy.io.savemat(filepath, save_dict)
 
