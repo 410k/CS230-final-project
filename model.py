@@ -179,7 +179,7 @@ class MidiNet(object):
         
 
     def load(self, model_name, path=None) :
-        print(" [*] Loading checkpoint...", flush=True)
+        print("[*] Loading checkpoint...", flush=True)
         self.saver = tf.train.Saver(max_to_keep=0)
         if not path:
             self.saver.restore(self.sess, os.path.join(self.dirs['model_path'], model_name))
@@ -196,27 +196,17 @@ class MidiNet(object):
         print("[*] Model saved in file: %s" % save_path, flush=True)
 
 
-    def predict(self, input_path, output_path):
-        in_list = []
-        out_list = []
-        filenames = []
-        input_lens = []
-
-        loaded = np.load(input_path)
-        true_vel = np.load(output_path)/127
-
-        in_list.append(loaded)
-        out_list.append(true_vel)
-
-        input_len = [len(loaded)]
-
-        c_loss, c_output = self.sess.run([self.classical_loss, self.classical_linear_out],
-                                         feed_dict={self.inputs: in_list,
-                                                    self.seq_len: input_len,
-                                                    self.input_keep_prob: 1.0,
-                                                    self.output_keep_prob: 1.0,
-                                                    self.true_classical_outputs: out_list})
-        return c_loss, c_output
+    def predict(self, inputs, outputs):
+        input_lens = [inputs.shape[1]] * inputs.shape[0]
+        loss, model_output, summary = self.sess.run([self.classical_loss,
+                                                        self.classical_linear_out,
+                                                        self.summary_op],
+                                                        feed_dict={self.inputs: inputs,
+                                                                   self.seq_len: input_lens,
+                                                                   self.input_keep_prob: 1.0,
+                                                                   self.output_keep_prob: 1.0,
+                                                                   self.true_classical_outputs: outputs})
+        return loss, model_output, summary
 
 
     def setup_validation(self, batch_size):
@@ -235,15 +225,7 @@ class MidiNet(object):
         '''Computes and logs loss of validation set'''
         validation_batch = self.validation_batcher.batch()
         validation_X, validation_Y, input_len = next(validation_batch)
-        input_len = [input_len] * len(validation_X)
-        c_loss, c_output, c_summary = self.sess.run([self.classical_loss,
-                                                     self.classical_linear_out,
-                                                     self.summary_op],
-                                                     feed_dict={self.inputs: validation_X,
-                                                                self.seq_len: input_len,
-                                                                self.input_keep_prob: 1.0,
-                                                                self.output_keep_prob: 1.0,
-                                                                self.true_classical_outputs: validation_Y})
+        c_loss, c_output, c_summary = self.predict(validation_X, validation_Y)
 
         print("[*] Average Test MSE for Classical epoch %d: %.9f" % (epoch, c_loss), flush=True)
         self.test_writer.add_summary(c_summary, epoch)
@@ -261,18 +243,14 @@ class MidiNet(object):
             if len(single_input.shape) == 2:
                 single_input = np.expand_dims(single_input, axis=0)
                 single_output = np.expand_dims(single_output, axis=0)
-            seq_len = [single_input.shape[1]]
-            c_loss, c_output, c_summary = self.sess.run([self.classical_loss,
-                                                         self.classical_linear_out,
-                                                         self.summary_op],
-                                                         feed_dict={self.inputs: single_input,
-                                                                    self.seq_len: seq_len,
-                                                                    self.input_keep_prob: 1.0,
-                                                                    self.output_keep_prob: 1.0,
-                                                                    self.true_classical_outputs: single_output})
 
+            # predict the audio
+            c_loss, c_output, c_summary = self.predict(single_input, single_output)
+
+            # create a figure
             self.plot_evaluation(epoch, tmp_filename, single_input, single_output, c_output)
             
+            # save the data
             save_dict = {'model_output': c_output, 
                          'true_output': single_output,
                          'input': single_input}
