@@ -157,7 +157,6 @@ class GenreLSTM(object):
                 self.save(epoch)
 
             if epoch % eval_epoch == 0 :
-                print("[*] Evaluating model...", flush=True)
                 self.evaluate(epoch)
 
         print("[*] Training complete.", flush=True)
@@ -247,6 +246,7 @@ class GenreLSTM(object):
 
     def evaluate(self, epoch, pred_save=False):
         '''Performs prediction and plots results on validation set.'''
+        print("[*] Evaluating model...", flush=True)
         for i, filename in enumerate(self.validation_files):
             single_input = np.expand_dims(self.validation_batcher.data_x[i], axis=0)
             single_output = np.expand_dims(self.validation_batcher.data_y[i], axis=0)
@@ -259,34 +259,28 @@ class GenreLSTM(object):
                                                                     self.input_keep_prob: 1.0,
                                                                     self.output_keep_prob: 1.0,
                                                                     self.true_classical_outputs: single_output})
-            self.plot_evaluation(epoch, filename, c_output, c_output, c_output, single_output)
+            tmp_filename = filename + '_' + str(i)
+            self.plot_evaluation(epoch, tmp_filename, single_input, single_output, c_output)
             
             save_dict = {'model_output': c_output, 
                          'true_output': single_output,
                          'input': single_input}
-            filepath = os.path.join(self.dirs['pred_path'], filename.split('.')[0] + "-e%d" % (epoch)+".mat")
+            filepath = os.path.join(self.dirs['pred_path'], tmp_filename.split('.')[0] + "-e%d" % (epoch)+".mat")
             scipy.io.savemat(filepath, save_dict)
 
 
-    def plot_evaluation(self, epoch, filename, c_out, j_out, e_out, out_list, path=None):
-        '''Plotting/Saving training session graphs
-        epoch -- epoch number
-        c_out -- classical output
-        j_out -- jazz output
-        e_out -- interpretation layer output
-        out_list -- actual output
-        output_size -- output width
-        path -- Save path'''
+    def plot_evaluation(self, epoch, filename, input, true_output, model_output, path=None):
+        '''Plotting/Saving training session graphs'''
 
         fig = plt.figure(figsize=(14,11), dpi=120)
         fig.suptitle(filename, fontsize=10, fontweight='bold')
 
-        graph_items = [out_list[-1], c_out[-1]]
+        graph_items = [input[-1], true_output[-1], model_output[-1]]
         plots = len(graph_items)
-        cmap = ['jet', 'jet']
-        vmin = [-1, -1]
-        vmax = [1, 1]
-        names = ["Actual", "Classical"]
+        cmap = ['jet', 'jet', 'jet']
+        vmin = [0, -1, -1]
+        vmax = [1, 1, 1]
+        names = ["Input", "True output", "Model output"]
 
         for i in range(0, plots):
             fig.add_subplot(1,plots,i+1)
@@ -298,8 +292,7 @@ class GenreLSTM(object):
             ax.xaxis.tick_top()
 
             ax.set_xlabel('Sample #')
-            if i == 0:
-                ax.set_ylabel('Time window #')
+            ax.set_ylabel('Time window #')
             ax.xaxis.set_label_position('top')
             ax.tick_params(axis='both', labelsize=7)
             fig.subplots_adjust(top=0.85)
@@ -312,8 +305,5 @@ class GenreLSTM(object):
             plt.savefig(out_png, bbox_inches='tight')
             plt.close(fig)
         else:
-            # out_png = os.path.join(self.dirs['png_path'], filename.split('.')[0] + "-e%d" % (epoch)+".png")
-            # plt.savefig(out_png, bbox_inches='tight')
-            # plt.close(fig)
             plt.show()
             plt.close(fig)
