@@ -252,9 +252,15 @@ class MidiNet(object):
     def evaluate(self, epoch, pred_save=False):
         '''Performs prediction and plots results on validation set.'''
         print("[*] Evaluating model...", flush=True)
-        for i, filename in enumerate(self.validation_files):
-            single_input = np.expand_dims(self.validation_batcher.data_x[i], axis=0)
-            single_output = np.expand_dims(self.validation_batcher.data_y[i], axis=0)
+        for i, filename in enumerate(self.validation_files[:3]):
+            tmp_filename = filename.split('.')[0] + '_' + str(i)
+            single_input = self.validation_batcher.data_x[i]
+            single_output = self.validation_batcher.data_y[i]
+            # the model takes 3D data (example #, time window #, pitch encoding / sample #)
+            # if the data is 2D, add the additional example dimension in axis 0
+            if len(single_input.shape) == 2:
+                single_input = np.expand_dims(single_input, axis=0)
+                single_output = np.expand_dims(single_output, axis=0)
             seq_len = [single_input.shape[1]]
             c_loss, c_output, c_summary = self.sess.run([self.classical_loss,
                                                          self.classical_linear_out,
@@ -264,7 +270,7 @@ class MidiNet(object):
                                                                     self.input_keep_prob: 1.0,
                                                                     self.output_keep_prob: 1.0,
                                                                     self.true_classical_outputs: single_output})
-            tmp_filename = filename + '_' + str(i)
+
             self.plot_evaluation(epoch, tmp_filename, single_input, single_output, c_output)
             
             save_dict = {'model_output': c_output, 

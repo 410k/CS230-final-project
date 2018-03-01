@@ -132,12 +132,13 @@ def load_data(dirpath):
                 for ind in range(loaded_x.shape[0]):
                     X_data.append(loaded_x[ind,:,:])
                     Y_data.append(loaded_y[ind,:,:])
+                    filenames.append(filename)
             else:
                 # if the data is 2D, it is its own segment
                 # if the segment is too large, the BatchGenerator will create smaller segments
                 X_data.append(loaded_x)
                 Y_data.append(loaded_y)
-            filenames.append(filename)
+                filenames.append(filename)
 
     return X_data, Y_data, filenames
 
