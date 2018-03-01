@@ -8,61 +8,74 @@ import scipy.io
 from data_util import load_data
 
 
-parser = argparse.ArgumentParser(description='How to run this')
-
-parser.add_argument(
-    "-current_run",
-    type=str,
-    help="The name of the model which will also be the name of the session's folder."
-)
-
-parser.add_argument(
-    "-data_dir",
-    type=str,
-    default="./data",
-    help="Directory of datasets"
-)
-
-parser.add_argument(
-    "-data_set",
-    type=str,
-    default="train",
-    help="The name of training dataset"
-)
-
-parser.add_argument(
-    "-runs_dir",
-    type=str,
-    default="./runs",
-    help="The name of the model which will also be the name of the session folder"
-)
-
-parser.add_argument(
-    "-bi",
-    help="True for bidirectional",
-    action='store_true'
-)
-
-parser.add_argument(
-    "-forward_only",
-    action='store_true',
-    help="True for forward only, False for training [False]"
-)
-
-parser.add_argument(
-    "-load_model",
-    type=str,
-    default=None,
-    help="Folder name of model to load"
-)
-
-parser.add_argument(
-    "-load_last",
-    action='store_true',
-    help="Start from last epoch"
-)
-
+parser = argparse.ArgumentParser(description='How to run the model')
+parser.add_argument("-c", "--current_run", required=True,
+                    type=str,
+                    help="The name of the model which will also be the name of the session's folder.")
+# network architecture options
+parser.add_argument("-hu", "--hidden_units",
+                    type=int, default=256,
+                    help="The number of hidden units per layer in the RNN")
+parser.add_argument("-l", "--layers",
+                    type=int, default=2,
+                    help="The number of layers in the RNN")
+# training options
+parser.add_argument("-bs", "--batch_size",
+                    type=int, default=16,
+                    help="The number of examples in each mini batch")
+parser.add_argument("-lr", "--learning_rate",
+                    type=float, default=0.001,
+                    help="The learning rate of the RNN")
+parser.add_argument("-e", "--epochs",
+                    type=int, default=301,
+                    help="The total number of epochs to train the RNN for")
+parser.add_argument("-ste", "--starting_epoch",
+                    type=int, default=0,
+                    help="The starting epoch to train the RNN on")
+parser.add_argument("-sae", "--save_epoch",
+                    type=int, default=10,
+                    help="The epoch interval to save the RNN model")
+parser.add_argument("-vae", "--validate_epoch",
+                    type=int, default=10,
+                    help="The epoch interval to validate the RNN model")
+parser.add_argument("-eve", "--evaluate_epoch",
+                    type=int, default=10,
+                    help="The epoch interval to evaluate the RNN model")
+# other options
+parser.add_argument("-lm", "--load_model",
+                    type=str, default=None,
+                    help="Folder name of model to load")
+parser.add_argument("-ll", "--load_last",
+                    action='store_true',
+                    help="Start from last epoch")
+parser.add_argument("-m", "--mode",
+                    choices=['train', 'predict'], default='train',
+                    help="Mode to operate model in")
+# file system options
+parser.add_argument("--data_dir",
+                    type=str, default="./data",
+                    help="Directory of datasets")
+parser.add_argument("--runs_dir",
+                    type=str, default="./runs",
+                    help="The name of the model which will also be the name of the session folder")
 args = parser.parse_args()
+
+print('current_run =',    args.current_run)
+print('hidden_units =',   args.hidden_units)
+print('layers =',         args.layers)
+print('batch_size =',     args.batch_size)
+print('learning_rate =',  args.learning_rate)
+print('epochs =',         args.epochs)
+print('starting_epoch =', args.starting_epoch)
+print('save_epoch =',     args.save_epoch)
+print('validate_epoch =', args.validate_epoch)
+print('evaluate_epoch =', args.evaluate_epoch)
+
+print('load_model =',     args.load_model)
+print('load_last =',      args.load_last)
+print('data_dir =',       args.data_dir)
+print('runs_dir =',       args.runs_dir)
+
 
 def setup_dir():
 
@@ -114,11 +127,16 @@ def main():
     input_size = data['classical']['X'][0].shape[1]
     output_size = data['classical']['Y'][0].shape[1]
 
-    network  = GenreLSTM(dirs, input_size=input_size, output_size=output_size, 
-                         mini=True, bi=args.bi, batch_size=256)
+    network  = GenreLSTM(dirs, 
+                         input_size=input_size, 
+                         output_size=output_size, 
+                         mini=True, 
+                         bi=True, 
+                         num_layers=args.layers,
+                         batch_size=args.batch_size)
     network.prepare_model()
 
-    if not args.forward_only:
+    if args.mode == 'train':
         if args.load_model:
             # assumes that model name is [name]-[e][epoch_number]
             loaded_epoch = args.load_model.split('.')[0]
@@ -143,9 +161,15 @@ def main():
             starting_epoch = loaded_epoch+1
         else:
             model = None
-            starting_epoch = 0
-        network.train(data, model=model, starting_epoch=starting_epoch, 
-                      epochs=1001, eval_epoch=10, save_epoch=10)
+            starting_epoch = args.starting_epoch
+        network.train(data, 
+                      model=model,
+                      starting_epoch=starting_epoch, 
+                      learning_rate=args.learning_rate,
+                      epochs=args.epochs, 
+                      save_epoch=args.save_epoch, 
+                      val_epoch=args.validate_epoch,
+                      eval_epoch=args.evaluate_epoch)
     else:
         network.load(args.load_model)
 
