@@ -9,17 +9,15 @@ matplotlib.pyplot.ioff()
 
 import scipy.io
 
-class GenreLSTM(object):
-    def __init__(self, dirs, input_size, output_size, mini=False, bi=False, 
-        one_hot=True, num_layers=2, batch_size=8):
+class MidiNet(object):
+    def __init__(self, dirs, input_size, output_size, 
+                 num_hidden_units=256, num_layers=2, unidirectional_flag=False):
+        self.dirs = dirs
         self.input_size = int(input_size)
         self.output_size = int(output_size)
+        self.num_hidden_units = int(num_hidden_units)
         self.num_layers = int(num_layers)
-        self.batch_size = int(batch_size)
-        self.dirs = dirs
-        self.bi = bi
-        self.mini = mini
-        self.one_hot = one_hot
+        self.unidirectional_flag = unidirectional_flag
 
         self.sess = tf.Session()
 
@@ -34,9 +32,12 @@ class GenreLSTM(object):
         self.output_keep_prob = tf.placeholder(tf.float32, None, name='output_keep_prob')
 
         # network architecture
-        self.num_hidden_units = 256
-        # self.prepare_unidirectional()
-        self.prepare_bidirectional()
+        # RNN layer(s)
+        if self.unidirectional_flag:
+            self.prepare_unidirectional()
+        else:
+            self.prepare_bidirectional()
+        # fully connected output layer
         with tf.variable_scope('fc') as scope:
             self.classical_linear_out = tf.contrib.layers.fully_connected(self.classical_outputs, 
                                                                           self.output_size, 
@@ -102,9 +103,12 @@ class GenreLSTM(object):
             self.classical_outputs  = tf.concat([self.rnn_fw, self.rnn_bw], axis=2)
 
 
-    def train(self, data, model=None, starting_epoch=0, clip_grad=False, 
-        epochs=1001, input_keep_prob=1.0, output_keep_prob=1.0, 
-        learning_rate=0.001 , eval_epoch=5, val_epoch=20, save_epoch=5):
+    def train(self, data, model=None, 
+        batch_size=8, rebatch_flag=False, rebatch_size=200,
+        learning_rate=0.001, clip_grad=False, 
+        input_keep_prob=1.0, output_keep_prob=1.0,
+        epochs=1001, starting_epoch=0,
+        save_epoch=5, val_epoch=20, eval_epoch=5):
 
         self.data = data
 
@@ -122,11 +126,12 @@ class GenreLSTM(object):
 
         classical_batcher = BatchGenerator(self.data["classical"]["X"], 
                                            self.data["classical"]["Y"], 
-                                           self.batch_size,
-                                           rebatch_flag=self.mini)
+                                           batch_size,
+                                           rebatch_flag=rebatch_flag,
+                                           rebatch_len=rebatch_size)
         classical_generator = classical_batcher.batch()
 
-        self.validation_batcher, self.validation_files = self.setup_validation("classical")
+        self.validation_batcher, self.validation_files = self.setup_validation(batch_size)
 
 
         print("[*] Initiating training...", flush=True)
@@ -214,14 +219,14 @@ class GenreLSTM(object):
         return c_loss, c_output
 
 
-    def setup_validation(self, genreType):
+    def setup_validation(self, batch_size):
         '''Handles validation set data'''
         input_folder = self.dirs['train_dev_path']
         X_data, Y_data, filenames = load_data(input_folder)
 
         validation_generator = BatchGenerator(X_data, 
                                               Y_data, 
-                                              self.batch_size, 
+                                              batch_size, 
                                               rebatch_flag=False)
         return validation_generator, filenames
 
