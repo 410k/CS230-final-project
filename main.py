@@ -122,11 +122,11 @@ def setup_dir():
 
 def main():
     tf.logging.set_verbosity(tf.logging.ERROR)
-
     dirs = setup_dir()
+
     data = {}
     data['classical'] = {}
-    data['classical']['X'], data['classical']['Y'], _ = load_data(dirs['train_path'])
+    data['classical']['X'], data['classical']['Y'], _ = load_data(dirs['train_dev_path'])
     input_size = data['classical']['X'][0].shape[1]
     output_size = data['classical']['Y'][0].shape[1]
 
@@ -138,32 +138,39 @@ def main():
                        unidirectional_flag=args.unidirectional)
     network.prepare_model()
 
+    if args.load_model:
+        # assumes that model name is [name]-[e][epoch_number]
+        loaded_epoch = args.load_model.split('.')[0]
+        loaded_epoch = loaded_epoch.split('-')[-1]
+        loaded_epoch = loaded_epoch[1:]
+        print("[*] Loading " + args.load_model + " and continuing from " + loaded_epoch, flush=True)
+        loaded_epoch = int(loaded_epoch)
+        model = args.load_model
+        starting_epoch = loaded_epoch+1
+    elif args.load_last:
+        # list all the .ckpt files in a tuple (epoch, model_name)
+        tree = os.listdir(dirs["model_path"])
+        tree.remove('checkpoint')
+        files = [(int(file.split('.')[0].split('-')[-1][1:]), file.split('.')[0]) for file in tree]
+        # find the properties of the last checkpoint
+        files.sort(key = lambda t: t[0])
+        target_file = files[-1]
+        loaded_epoch = target_file[0]
+        model_name = target_file[1]
+        model = model_name + ".ckpt"
+        print("[*] Loading " + model + " and continuing from epoch " + str(loaded_epoch), flush=True)
+        starting_epoch = loaded_epoch+1
+    else:
+        model = None
+        starting_epoch = args.starting_epoch
+
     if args.mode == 'train':
-        if args.load_model:
-            # assumes that model name is [name]-[e][epoch_number]
-            loaded_epoch = args.load_model.split('.')[0]
-            loaded_epoch = loaded_epoch.split('-')[-1]
-            loaded_epoch = loaded_epoch[1:]
-            print("[*] Loading " + args.load_model + " and continuing from " + loaded_epoch, flush=True)
-            loaded_epoch = int(loaded_epoch)
-            model = args.load_model
-            starting_epoch = loaded_epoch+1
-        elif args.load_last:
-            # list all the .ckpt files in a tuple (epoch, model_name)
-            tree = os.listdir(dirs["model_path"])
-            tree.remove('checkpoint')
-            files = [(int(file.split('.')[0].split('-')[-1][1:]), file.split('.')[0]) for file in tree]
-            # find the properties of the last checkpoint
-            files.sort(key = lambda t: t[0])
-            target_file = files[-1]
-            loaded_epoch = target_file[0]
-            model_name = target_file[1]
-            model = model_name + ".ckpt"
-            print("[*] Loading " + model + " and continuing from epoch " + str(loaded_epoch), flush=True)
-            starting_epoch = loaded_epoch+1
-        else:
-            model = None
-            starting_epoch = args.starting_epoch
+        data = {}
+        data['classical'] = {}
+        data['classical']['X'], data['classical']['Y'], _ = load_data(dirs['train_path'])
+        input_size = data['classical']['X'][0].shape[1]
+        output_size = data['classical']['Y'][0].shape[1]
+        #
         network.train(data, 
                       model=model,
                       starting_epoch=starting_epoch,
@@ -176,7 +183,33 @@ def main():
                       val_epoch=args.validate_epoch,
                       eval_epoch=args.evaluate_epoch)
     else:
-        network.load(args.load_model)
+        network.load(model)
+
+        data = {}
+        data['inputs'], data['outputs'], filenames = load_data(dirs['train_dev_path'])
+        #
+        # prev_filename = filenames[0]
+
+        for ind, filename in enumerate(filenames):
+            tmp_filename = filename.split('.')[0] + '_' + str(ind)
+            single_input = data['inputs'][ind]
+            single_output = data['outputs'][ind]
+            if len(single_input.shape) == 2:
+                single_input = np.expand_dims(single_input, axis=0)
+                single_output = np.expand_dims(single_output, axis=0)
+
+            loss, model_output, _ = network.predict(single_input, single_output)
+
+            # create a figure
+            network.plot_evaluation(loaded_epoch, tmp_filename, single_input, single_output, model_output)
+        
+            # save the data
+            save_dict = {'model_output': model_output,
+                         'true_output': single_output,
+                         'input': single_input}
+            filepath = os.path.join(dirs['pred_path'], tmp_filename.split('.')[0] + "-e%d" % (loaded_epoch)+".mat")
+            scipy.io.savemat(filepath, save_dict)
+
 
 if __name__ == '__main__':
     main()
