@@ -4,6 +4,37 @@ import scipy.io
 import scipy.io.wavfile
 import glob
 
+def setup_dirs(args):
+    print('[*] Setting up directory...', flush=True)
+    main_path = args.runs_dir
+    current_run = os.path.join(main_path, args.current_run)
+    # data
+    data_path = args.data_dir
+    train_path = os.path.join(data_path, 'train')
+    train_dev_path = os.path.join(data_path, 'train_dev')
+    test_path = os.path.join(data_path, 'test')
+    # model
+    model_path = os.path.join(current_run, 'model')
+    logs_path = os.path.join(current_run, 'logs')
+    png_path = os.path.join(current_run, 'png')
+    pred_path = os.path.join(current_run, 'predictions')
+    # dictionary of directory paths
+    dirs = {'main_path': main_path,
+            'current_run': current_run,
+            'train_path': train_path,
+            'train_dev_path': train_dev_path,
+            'test_path': test_path,
+            'model_path': model_path,
+            'logs_path': logs_path,
+            'png_path': png_path,
+            'pred_path': pred_path}
+    # create the directories if they don't already exist
+    for dir_name, dir_path in dirs.items():
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+    return dirs
+
+
 def load_data(dirpath, example_duration, time_window_duration, sampling_frequency):
     X_data, Y_data, filenames = [], [], []
 
