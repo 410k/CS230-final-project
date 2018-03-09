@@ -101,12 +101,14 @@ print()
 
 import os
 import numpy as np
+import tensorflow as tf
 from MidiNet import MidiNet
 from sklearn.model_selection import train_test_split
 
 import scipy.io
 from util import setup_dirs, load_data, save_predictions
 from keras.callbacks import ModelCheckpoint, CSVLogger
+from keras.models import load_model
 
 
 def main():
@@ -127,32 +129,34 @@ def main():
 
     gpus = args.gpus
 
-    # if args.load_model:
-    #     # assumes that model name is [name]-[e][epoch_number]
-    #     loaded_epoch = args.load_model.split('.')[0]
-    #     loaded_epoch = loaded_epoch.split('-')[-1]
-    #     loaded_epoch = loaded_epoch[1:]
-    #     print("[*] Loading " + args.load_model + " and continuing from " + loaded_epoch, flush=True)
-    #     loaded_epoch = int(loaded_epoch)
-    #     model = args.load_model
-    #     starting_epoch = loaded_epoch+1
-    # elif args.load_last:
-    #     # list all the .ckpt files in a tuple (epoch, model_name)
-    #     tree = os.listdir(dirs["model_path"])
-    #     tree.remove('checkpoint')
-    #     files = [(int(file.split('.')[0].split('-')[-1][1:]), file.split('.')[0]) for file in tree]
-    #     # find the properties of the last checkpoint
-    #     files.sort(key = lambda t: t[0])
-    #     target_file = files[-1]
-    #     loaded_epoch = target_file[0]
-    #     model_name = target_file[1]
-    #     model = model_name + ".ckpt"
-    #     print("[*] Loading " + model + " and continuing from epoch " + str(loaded_epoch), flush=True)
-    #     starting_epoch = loaded_epoch+1
-    # else:
-    #     model = None
-    #     starting_epoch = args.starting_epoch
+    #
+    if args.load_model:
+        # assumes that model name is [name]-[e][epoch_number]-[other_stuff]
+        model_filename = args.load_model
+        model_epoch_str = model_filename.split('.')[0].split('-')[1]
+        model_epoch = model_epoch_str[1:]
+        print("[*] Loading " + args.load_model + " and continuing from epoch " + model_epoch, flush=True)
+        model_path = os.path.join(dirs['model_path'], model_filename)
+        model = load_model(model_path)
+        starting_epoch = int(model_epoch)+1
+    elif args.load_last:
+        # list all the .ckpt files in a tuple (epoch, model_name)
+        tree = os.listdir(dirs["model_path"])
+        files = [(int(file.split('.')[0].split('-')[1][1:]), file.split('.')[0]) for file in tree]
+        # find the properties of the last checkpoint
+        files.sort(key = lambda t: t[0])
+        target_file = files[-1]
+        model_epoch = target_file[0]
+        model_name = target_file[1]
+        model_filename = model_name + ".hdf5"
+        print("[*] Loading " + model_filename + " and continuing from epoch " + str(model_epoch), flush=True)
+        model_path = os.path.join(dirs['model_path'], model_filename)
+        model = load_model(model_path)
+        starting_epoch = int(model_epoch)+1
+    else:
+        starting_epoch = 0
 
+    #
     if args.mode == 'train':
         # load data
         train_path = dirs['train_path']
@@ -161,25 +165,27 @@ def main():
         input_shape = (X_train.shape[1], X_train.shape[2])
         output_shape = (Y_train.shape[1], Y_train.shape[2])
 
-        # compile model
-        with tf.device('/cpu:0'):
-            model = MidiNet(input_shape, output_shape, num_hidden_units, num_layers, 
-                unidirectional_flag, cell_type)
-        if gpus >= 2
-            model = multi_gpu_model(model, gpus=gpus)
-        model.compile(loss='mean_squared_error', optimizer='adam')
+        # create & compile model
+        if not 'model' in vars():
+            with tf.device('/cpu:0'):
+                model = MidiNet(input_shape, output_shape, num_hidden_units, num_layers, 
+                    unidirectional_flag, cell_type)
+            if gpus >= 2:
+                model = multi_gpu_model(model, gpus=gpus)
+            model.compile(loss='mean_squared_error', optimizer='adam')
         print(model.summary())
 
         # train the model & run a checkpoint callback
-        checkpoint_filename = 'weights-epoch{epoch:03d}-loss{loss:.4f}.hdf5'
-        checkpoint_filepath = os.path.join(dirs['current_run'], checkpoint_filename)
+        checkpoint_filename = 'model-e{epoch:03d}-loss{loss:.4f}.hdf5'
+        checkpoint_filepath = os.path.join(dirs['model_path'], checkpoint_filename)
         checkpoint = ModelCheckpoint(checkpoint_filepath, monitor='loss', verbose=1, period=epoch_save_interval)
         csv_filename = 'training_log.csv'
         csv_filepath = os.path.join(dirs['current_run'], csv_filename)
         csv_logger = CSVLogger(csv_filepath)
         callbacks_list = [checkpoint, csv_logger]
-        history_callback = model.fit(X_train, Y_train, epochs=num_epochs, batch_size=batch_size, callbacks=callbacks_list)
-        
+        history_callback = model.fit(X_train, Y_train, epochs=num_epochs+starting_epoch, 
+            initial_epoch=starting_epoch, batch_size=batch_size, callbacks=callbacks_list)
+
         # save the loss history
         loss_history = history_callback.history["loss"]
         save_dict = {'loss_history': loss_history}
@@ -187,8 +193,9 @@ def main():
         scipy.io.savemat(filepath, save_dict)
 
         # save the final model
-        filename = 'model-e' + str(num_epochs)
-        filepath = os.path.join(dirs['current_run'], filename)
+        last_epoch = history_callback.epoch[-1]
+        filename = 'model-e' + str(last_epoch) + '.hdf5'
+        filepath = os.path.join(dirs['model_path'], filename)
         model.save(filepath)
 
         # evaluate model on training and test data
