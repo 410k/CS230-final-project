@@ -27,6 +27,9 @@ parser.add_argument("-ed", "--example_duration",
                     type=float, default=4.0,
                     help="The duration (s) of each example")
 # training options
+parser.add_argument("-g", "--gpus",
+                    type=int, default=0,
+                    help="The number of GPUs to use")
 parser.add_argument("-ld", "--loss_domain",
                     choices=['time', 'frequency'], default='time',
                     help="The domain in which the loss function is calculated")
@@ -122,6 +125,8 @@ def main():
     num_epochs = args.epochs
     epoch_save_interval = args.epoch_save_interval
 
+    gpus = args.gpus
+
     # if args.load_model:
     #     # assumes that model name is [name]-[e][epoch_number]
     #     loaded_epoch = args.load_model.split('.')[0]
@@ -157,8 +162,11 @@ def main():
         output_shape = (Y_train.shape[1], Y_train.shape[2])
 
         # compile model
-        model = MidiNet(input_shape, output_shape, num_hidden_units, num_layers, 
-            unidirectional_flag, cell_type)
+        with tf.device('/cpu:0'):
+            model = MidiNet(input_shape, output_shape, num_hidden_units, num_layers, 
+                unidirectional_flag, cell_type)
+        if gpus >= 2
+            model = multi_gpu_model(model, gpus=gpus)
         model.compile(loss='mean_squared_error', optimizer='adam')
         print(model.summary())
 
