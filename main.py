@@ -1,21 +1,11 @@
 import argparse
-import os
-import numpy as np
-from MidiNet import MidiNet
-from sklearn.model_selection import train_test_split
-
-import scipy.io
-from util import setup_dirs, load_data
-from keras.callbacks import ModelCheckpoint
-
-
 parser = argparse.ArgumentParser(description='How to run the model')
 parser.add_argument("-c", "--current_run", required=True,
                     type=str,
                     help="The name of the model which will also be the name of the session's folder")
 # network architecture options
 parser.add_argument("-hu", "--hidden_units",
-                    type=int, default=256,
+                    type=int, default=128,
                     help="The number of hidden units per layer in the RNN")
 parser.add_argument("-l", "--layers",
                     type=int, default=2,
@@ -23,16 +13,26 @@ parser.add_argument("-l", "--layers",
 parser.add_argument("-uni", "--unidirectional",
                     action='store_true',
                     help="Use a unidirectional RNN network instead of a bidirectional network")
+parser.add_argument("-ct", "--cell_type",
+                    choices=['GRU', 'LSTM'], default='GRU',
+                    help="Memory cell type to use in the RNN")
+# input data options
+parser.add_argument("-sf", "--sampling_frequency",
+                    type=int, default=8000,
+                    help="The sampling frequency (Hz) of the audio input")
+parser.add_argument("-tw", "--time_window_duration",
+                    type=float, default=0.05,
+                    help="The duration (s) of each time window")
+parser.add_argument("-ed", "--example_duration",
+                    type=float, default=4.0,
+                    help="The duration (s) of each example")
 # training options
+parser.add_argument("-ld", "--loss_domain",
+                    choices=['time', 'frequency'], default='time',
+                    help="The domain in which the loss function is calculated")
 parser.add_argument("-bs", "--batch_size",
-                    type=int, default=16,
+                    type=int, default=8,
                     help="The number of examples in each mini batch")
-parser.add_argument("-rb", "--rebatch",
-                    action='store_true',
-                    help="Rebatch the data to smaller segments")
-parser.add_argument("-rs", "--rebatch_size",
-                    type=int, default=200,
-                    help="Rebatch the data to 200 time window segments")
 parser.add_argument("-lr", "--learning_rate",
                     type=float, default=0.001,
                     help="The learning rate of the RNN")
@@ -42,13 +42,13 @@ parser.add_argument("-e", "--epochs",
 parser.add_argument("-ste", "--starting_epoch",
                     type=int, default=0,
                     help="The starting epoch to train the RNN on")
-parser.add_argument("-sae", "--save_epoch",
+parser.add_argument("-esi", "--epoch_save_interval",
                     type=int, default=10,
                     help="The epoch interval to save the RNN model")
-parser.add_argument("-vae", "--validate_epoch",
+parser.add_argument("-evi", "--epoch_val_interval",
                     type=int, default=10,
                     help="The epoch interval to validate the RNN model")
-parser.add_argument("-eve", "--evaluate_epoch",
+parser.add_argument("-eei", "--epoch_eval_interval",
                     type=int, default=10,
                     help="The epoch interval to evaluate the RNN model")
 # other options
@@ -70,29 +70,57 @@ parser.add_argument("--runs_dir",
                     help="The name of the model which will also be the name of the session folder")
 args = parser.parse_args()
 
-print('current_run =',    args.current_run)
-print('hidden_units =',   args.hidden_units)
-print('layers =',         args.layers)
-print('unidirectional =', args.unidirectional)
 print()
-print('batch_size =',     args.batch_size)
-print('rebatch =',        args.rebatch)
-print('rebatch_size =',   args.rebatch_size)
-print('learning_rate =',  args.learning_rate)
-print('epochs =',         args.epochs)
-print('starting_epoch =', args.starting_epoch)
-print('save_epoch =',     args.save_epoch)
-print('validate_epoch =', args.validate_epoch)
-print('evaluate_epoch =', args.evaluate_epoch)
+print('current_run =',        args.current_run)
+print('hidden_units =',       args.hidden_units)
+print('layers =',             args.layers)
+print('unidirectional =',     args.unidirectional)
+print('cell_type =',          args.cell_type)
 print()
-print('load_model =',     args.load_model)
-print('load_last =',      args.load_last)
-print('data_dir =',       args.data_dir)
-print('runs_dir =',       args.runs_dir)
+print('sampling_frequency =', args.sampling_frequency)
+print('time_window_duration =', args.time_window_duration)
+print('example_duration =',   args.example_duration)
+print()
+print('loss_domain =',        args.loss_domain)
+print('batch_size =',         args.batch_size)
+print('learning_rate =',      args.learning_rate)
+print('epochs =',             args.epochs)
+print('starting_epoch =',     args.starting_epoch)
+print('epoch_save_interval =',args.epoch_save_interval)
+print('epoch_val_interval =', args.epoch_val_interval)
+print('epoch_eval_interval =',args.epoch_eval_interval)
+print()
+print('load_model =',         args.load_model)
+print('load_last =',          args.load_last)
+print('data_dir =',           args.data_dir)
+print('runs_dir =',           args.runs_dir)
+print()
+
+import os
+import numpy as np
+from MidiNet import MidiNet
+from sklearn.model_selection import train_test_split
+
+import scipy.io
+from util import setup_dirs, load_data
+from keras.callbacks import ModelCheckpoint
 
 
 def main():
     dirs = setup_dirs(args)
+
+    example_duration = args.example_duration
+    time_window_duration = args.time_window_duration
+    sampling_frequency = args.sampling_frequency
+
+    num_hidden_units = args.hidden_units
+    num_layers = args.layers
+    unidirectional_flag = args.unidirectional
+    cell_type = args.cell_type
+    batch_size = args.batch_size
+
+    num_epochs = args.epochs
+    epoch_save_interval = args.epoch_save_interval
 
     # if args.load_model:
     #     # assumes that model name is [name]-[e][epoch_number]
