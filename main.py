@@ -22,7 +22,20 @@ parser.add_argument("-l", "--layers",
 parser.add_argument("-uni", "--unidirectional",
                     action='store_true',
                     help="Use a unidirectional RNN network instead of a bidirectional network")
+parser.add_argument("-ct", "--cell_type",
+                    choices=['GRU', 'LSTM'], default='GRU',
+                    help="Memory cell type to use in the RNN")
+# input data options
+parser.add_argument("-sf", "--sampling_frequency",
+                    type=int, default=44100,
+                    help="The sampling frequency (Hz) of the audio input")
+parser.add_argument("-tw", "--time_window",
+                    type=int, default=50,
+                    help="The duration (ms) of each time window")
 # training options
+parser.add_argument("-ld", "--loss_domain",
+                    choices=['time', 'frequency'], default='time',
+                    help="The domain in which the loss function is calculated")
 parser.add_argument("-bs", "--batch_size",
                     type=int, default=16,
                     help="The number of examples in each mini batch")
@@ -69,25 +82,30 @@ parser.add_argument("--runs_dir",
                     help="The name of the model which will also be the name of the session folder")
 args = parser.parse_args()
 
-print('current_run =',    args.current_run)
-print('hidden_units =',   args.hidden_units)
-print('layers =',         args.layers)
-print('unidirectional =', args.unidirectional)
+print('current_run =',        args.current_run)
+print('hidden_units =',       args.hidden_units)
+print('layers =',             args.layers)
+print('unidirectional =',     args.unidirectional)
+print('cell_type =',          args.cell_type)
 print()
-print('batch_size =',     args.batch_size)
-print('rebatch =',        args.rebatch)
-print('rebatch_size =',   args.rebatch_size)
-print('learning_rate =',  args.learning_rate)
-print('epochs =',         args.epochs)
-print('starting_epoch =', args.starting_epoch)
-print('save_epoch =',     args.save_epoch)
-print('validate_epoch =', args.validate_epoch)
-print('evaluate_epoch =', args.evaluate_epoch)
+print('sampling_frequency =', args.sampling_frequency)
+print('time_window =',        args.time_window)
 print()
-print('load_model =',     args.load_model)
-print('load_last =',      args.load_last)
-print('data_dir =',       args.data_dir)
-print('runs_dir =',       args.runs_dir)
+print('loss_domain =',        args.loss_domain)
+print('batch_size =',         args.batch_size)
+print('rebatch =',            args.rebatch)
+print('rebatch_size =',       args.rebatch_size)
+print('learning_rate =',      args.learning_rate)
+print('epochs =',             args.epochs)
+print('starting_epoch =',     args.starting_epoch)
+print('save_epoch =',         args.save_epoch)
+print('validate_epoch =',     args.validate_epoch)
+print('evaluate_epoch =',     args.evaluate_epoch)
+print()
+print('load_model =',         args.load_model)
+print('load_last =',          args.load_last)
+print('data_dir =',           args.data_dir)
+print('runs_dir =',           args.runs_dir)
 
 
 def setup_dir():
