@@ -12,6 +12,7 @@ def setup_dirs(args):
     data_path = args.data_dir
     train_path = os.path.join(data_path, 'train')
     train_dev_path = os.path.join(data_path, 'train_dev')
+    test_dev_path = os.path.join(data_path, 'test_dev')
     test_path = os.path.join(data_path, 'test')
     # model
     model_path = os.path.join(current_run, 'model')
@@ -23,6 +24,7 @@ def setup_dirs(args):
             'current_run': current_run,
             'train_path': train_path,
             'train_dev_path': train_dev_path,
+            'test_dev_path': test_dev_path,
             'test_path': test_path,
             'model_path': model_path,
             'logs_path': logs_path,
@@ -82,15 +84,9 @@ def load_data(dirpath, example_duration, time_window_duration, sampling_frequenc
 
 
 def save_predictions(save_path, pred_type, X, Y, Y_pred):
-    if pred_type == 'test':
-        save_dict = {'Y_test_pred': Y_pred, 
-                     'X_test': X,
-                     'Y_test': Y}
-        save_name = 'test_pred.mat'
-    elif pred_type == 'train':
-        save_dict = {'Y_train_pred': Y_pred, 
-                     'X_train': X,
-                     'Y_train': Y}
-        save_name = 'train_pred.mat'
+    save_dict = {'Y_'+pred_type+'_pred': Y_pred, 
+                 'X_'+pred_type: X,
+                 'Y_'+pred_type: Y}
+    save_name = pred_type + '_pred.mat'
     filepath = os.path.join(save_path, save_name)
     scipy.io.savemat(filepath, save_dict)

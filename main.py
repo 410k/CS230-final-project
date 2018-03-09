@@ -64,6 +64,9 @@ parser.add_argument("-ll", "--load_last",
 parser.add_argument("-m", "--mode",
                     choices=['train', 'predict'], default='train',
                     help="Mode to operate model in")
+parser.add_argument("-pdd", "--predict_data_dir",
+                    choices=['test_dev', 'test'], default='test_dev',
+                    help="Data used for prediction")
 # file system options
 parser.add_argument("--data_dir",
                     type=str, default="./data",
@@ -95,6 +98,8 @@ print('epoch_eval_interval =',args.epoch_eval_interval)
 print()
 print('load_model =',         args.load_model)
 print('load_last =',          args.load_last)
+print('mode =',               args.mode)
+print('predict_data_dir =',   args.predict_data_dir)
 print('data_dir =',           args.data_dir)
 print('runs_dir =',           args.runs_dir)
 print()
@@ -129,7 +134,7 @@ def main():
 
     gpus = args.gpus
 
-    #
+    # load previous models
     if args.load_model:
         # assumes that model name is [name]-[e][epoch_number]-[other_stuff]
         model_filename = args.load_model
@@ -156,12 +161,12 @@ def main():
     else:
         starting_epoch = 0
 
-    #
+    # train or evaluate the model
     if args.mode == 'train':
         # load data
         train_path = dirs['train_path']
         X_data, Y_data, filenames = load_data(train_path, example_duration, time_window_duration, sampling_frequency)
-        X_train, X_test, Y_train, Y_test = train_test_split(X_data, Y_data, test_size=0.1)
+        X_train, X_train_dev, Y_train, Y_train_dev = train_test_split(X_data, Y_data, test_size=0.1)
         input_shape = (X_train.shape[1], X_train.shape[2])
         output_shape = (Y_train.shape[1], Y_train.shape[2])
 
@@ -198,40 +203,26 @@ def main():
         filepath = os.path.join(dirs['model_path'], filename)
         model.save(filepath)
 
-        # evaluate model on training and test data
-        Y_test_pred = model.predict(X_test, batch_size=batch_size)
+        # evaluate model on training and train_dev data
+        Y_train_dev_pred = model.predict(X_train_dev, batch_size=batch_size)
         Y_train_pred = model.predict(X_train, batch_size=batch_size)
 
         # save predictions
-        save_predictions(dirs['pred_path'], 'test', X_test, Y_test, Y_test_pred)
+        save_predictions(dirs['pred_path'], 'train_dev', X_train_dev, Y_train_dev, Y_train_dev_pred)
         save_predictions(dirs['pred_path'], 'train', X_train, Y_train, Y_train_pred)
-    # else:
-    #     network.load(model)
 
-    #     data = {}
-    #     data['inputs'], data['outputs'], filenames = load_data(dirs['train_dev_path'])
-    #     #
-    #     # prev_filename = filenames[0]
+    elif args.mode == 'predict':
+        if args.predict_data_dir == 'test_dev':
+            data_path = dirs['test_dev_path']
+        elif args.predict_data_dir == 'test':
+            data_path = dirs['test_path']
+        X_data, Y_data, filenames = load_data(data_path, example_duration, time_window_duration, sampling_frequency)
 
-    #     for ind, filename in enumerate(filenames):
-    #         tmp_filename = filename.split('.')[0] + '_' + str(ind)
-    #         single_input = data['inputs'][ind]
-    #         single_output = data['outputs'][ind]
-    #         if len(single_input.shape) == 2:
-    #             single_input = np.expand_dims(single_input, axis=0)
-    #             single_output = np.expand_dims(single_output, axis=0)
+        # evaluate model on test data
+        Y_data_pred = model.predict(X_data, batch_size=batch_size)
 
-    #         loss, model_output, _ = network.predict(single_input, single_output)
-
-    #         # create a figure
-    #         network.plot_evaluation(loaded_epoch, tmp_filename, single_input, single_output, model_output)
-        
-    #         # save the data
-    #         save_dict = {'model_output': model_output,
-    #                      'true_output': single_output,
-    #                      'input': single_input}
-    #         filepath = os.path.join(dirs['pred_path'], tmp_filename.split('.')[0] + "-e%d" % (loaded_epoch)+".mat")
-    #         scipy.io.savemat(filepath, save_dict)
+        # save predictions
+        save_predictions(dirs['pred_path'], args.predict_data_dir, X_data, Y_data, Y_data_pred)
 
 
 if __name__ == '__main__':
