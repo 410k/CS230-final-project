@@ -152,7 +152,7 @@ def main():
         # load data
         train_path = dirs['train_path']
         X_data, Y_data, filenames = load_data(train_path, example_duration, time_window_duration, sampling_frequency)
-        X_train, X_test, Y_train, Y_test = train_test_split(X_data, Y_data)
+        X_train, X_test, Y_train, Y_test = train_test_split(X_data, Y_data, test_size=0.1)
         input_shape = (X_train.shape[1], X_train.shape[2])
         output_shape = (Y_train.shape[1], Y_train.shape[2])
 
@@ -163,11 +163,11 @@ def main():
         print(model.summary())
 
         # train the model & run a checkpoint callback
-        filename = 'weights-epoch{epoch:03d}-loss{val_loss:.4f}.hdf5'
+        filename = 'weights-epoch{epoch:03d}-loss{loss:.4f}.hdf5'
         filepath = os.path.join(dirs['current_run'], filename)
-        checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, period=epoch_save_interval)
+        checkpoint = ModelCheckpoint(filepath, monitor='loss', verbose=1, period=epoch_save_interval)
         callbacks_list = [checkpoint]
-        model.fit(X_train, Y_train, validation_split=0.05, epochs=num_epochs, batch_size=batch_size, callbacks=callbacks_list)
+        model.fit(X_train, Y_train, epochs=num_epochs, batch_size=batch_size, callbacks=callbacks_list)
 
         # save the final model
         filename = 'model-e' + str(num_epochs)
