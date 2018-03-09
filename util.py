@@ -80,3 +80,17 @@ def load_data(dirpath, example_duration, time_window_duration, sampling_frequenc
 
     return X_data, Y_data, filenames
 
+
+def save_predictions(save_path, pred_type, X, Y, Y_pred):
+    if pred_type == 'test':
+        save_dict = {'Y_test_pred': Y_pred, 
+                     'X_test': X,
+                     'Y_test': Y}
+        save_name = 'test_pred.mat'
+    elif pred_type == 'train':
+        save_dict = {'Y_train_pred': Y_pred, 
+                     'X_train': X,
+                     'Y_train': Y}
+        save_name = 'train_pred.mat'
+    filepath = os.path.join(save_path, save_name)
+    scipy.io.savemat(filepath, save_dict)

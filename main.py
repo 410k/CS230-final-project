@@ -102,7 +102,7 @@ from MidiNet import MidiNet
 from sklearn.model_selection import train_test_split
 
 import scipy.io
-from util import setup_dirs, load_data
+from util import setup_dirs, load_data, save_predictions
 from keras.callbacks import ModelCheckpoint
 
 
@@ -179,17 +179,8 @@ def main():
         Y_train_pred = model.predict(X_train, batch_size=batch_size)
 
         # save predictions
-        save_dict = {'Y_test_pred': Y_test_pred, 
-                     'X_test': X_test,
-                     'Y_test': Y_test}
-        filepath = os.path.join(dirs['pred_path'], "test_pred.mat")
-        scipy.io.savemat(filepath, save_dict)
-
-        save_dict = {'Y_train_pred': Y_train_pred, 
-                     'X_train': X_train,
-                     'Y_train': Y_train}
-        filepath = os.path.join(dirs['pred_path'], "train_pred.mat")
-        scipy.io.savemat(filepath, save_dict)
+        save_predictions(dirs['pred_path'], 'test', X_test, Y_test, Y_test_pred)
+        save_predictions(dirs['pred_path'], 'train', X_train, Y_train, Y_train_pred)
     # else:
     #     network.load(model)
 
