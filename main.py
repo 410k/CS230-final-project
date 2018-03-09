@@ -103,7 +103,7 @@ from sklearn.model_selection import train_test_split
 
 import scipy.io
 from util import setup_dirs, load_data, save_predictions
-from keras.callbacks import ModelCheckpoint
+from keras.callbacks import ModelCheckpoint, CSVLogger
 
 
 def main():
@@ -163,11 +163,20 @@ def main():
         print(model.summary())
 
         # train the model & run a checkpoint callback
-        filename = 'weights-epoch{epoch:03d}-loss{loss:.4f}.hdf5'
-        filepath = os.path.join(dirs['current_run'], filename)
-        checkpoint = ModelCheckpoint(filepath, monitor='loss', verbose=1, period=epoch_save_interval)
-        callbacks_list = [checkpoint]
-        model.fit(X_train, Y_train, epochs=num_epochs, batch_size=batch_size, callbacks=callbacks_list)
+        checkpoint_filename = 'weights-epoch{epoch:03d}-loss{loss:.4f}.hdf5'
+        checkpoint_filepath = os.path.join(dirs['current_run'], checkpoint_filename)
+        checkpoint = ModelCheckpoint(checkpoint_filepath, monitor='loss', verbose=1, period=epoch_save_interval)
+        csv_filename = 'training_log.csv'
+        csv_filepath = os.path.join(dirs['current_run'], csv_filename)
+        csv_logger = CSVLogger(csv_filepath)
+        callbacks_list = [checkpoint, csv_logger]
+        history_callback = model.fit(X_train, Y_train, epochs=num_epochs, batch_size=batch_size, callbacks=callbacks_list)
+        
+        # save the loss history
+        loss_history = history_callback.history["loss"]
+        save_dict = {'loss_history': loss_history}
+        filepath = os.path.join(dirs['current_run'], "loss_history.mat")
+        scipy.io.savemat(filepath, save_dict)
 
         # save the final model
         filename = 'model-e' + str(num_epochs)
