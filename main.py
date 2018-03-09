@@ -153,7 +153,9 @@ def main():
                        output_size=output_size, 
                        num_hidden_units=args.hidden_units,  
                        num_layers=args.layers,
-                       unidirectional_flag=args.unidirectional)
+                       unidirectional_flag=args.unidirectional,
+                       cell_type=args.cell_type,
+                       loss_domain=args.loss_domain)
     network.prepare_model()
 
     if args.load_model:

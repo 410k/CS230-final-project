@@ -11,13 +11,16 @@ import scipy.io
 
 class MidiNet(object):
     def __init__(self, dirs, input_size, output_size, 
-                 num_hidden_units=256, num_layers=2, unidirectional_flag=False):
+                 num_hidden_units=256, num_layers=2, unidirectional_flag=False,
+                 cell_type='GRU', loss_domain='time'):
         self.dirs = dirs
         self.input_size = int(input_size)
         self.output_size = int(output_size)
         self.num_hidden_units = int(num_hidden_units)
         self.num_layers = int(num_layers)
         self.unidirectional_flag = unidirectional_flag
+        self.cell_type = cell_type
+        self.loss_domain = loss_domain
 
         self.sess = tf.Session()
 
@@ -45,8 +48,14 @@ class MidiNet(object):
                                                                           scope='layer1')
 
         self.classical_difference = tf.subtract(self.true_classical_outputs, self.classical_linear_out)
-        self.classical_loss = tf.losses.mean_squared_error(self.true_classical_outputs,
-                                                           self.classical_linear_out)
+        if self.loss_domain == 'time':
+            self.classical_loss = tf.losses.mean_squared_error(self.true_classical_outputs,
+                                                               self.classical_linear_out)
+        elif self.loss_domain == 'frequency':
+            self.classical_loss = tf.losses.mean_squared_error(self.true_classical_outputs,
+                                                               np.fft(self.classical_linear_out))
+        else:
+            print('Incorrect loss domain specified!')
 
         # variables_names =[v.name for v in tf.trainable_variables()]
         # values = self.sess.run(variables_names)
@@ -69,17 +78,34 @@ class MidiNet(object):
 
     def create_GRU_cell(self):
         cell = tf.contrib.rnn.GRUCell(self.num_hidden_units)
-        # cell = tf.contrib.rnn.DropoutWrapper(self.rnn_cell, 
+        # cell = tf.contrib.rnn.DropoutWrapper(cell, 
         #                                      input_keep_prob=self.input_keep_prob, 
         #                                      output_keep_prob=self.output_keep_prob)
         return cell
+
+
+    def create_LSTM_cell(self):
+        cell = tf.contrib.rnn.LSTMCell(self.num_hidden_units)
+        # cell = tf.contrib.rnn.DropoutWrapper(cell, 
+        #                                      input_keep_prob=self.input_keep_prob, 
+        #                                      output_keep_prob=self.output_keep_prob)
+        return cell
+
+
+    def create_cell(self):
+        if self.cell_type == 'GRU':
+            return self.create_GRU_cell()
+        elif self.cell_type == 'LSTM':
+            return self.create_LSTM_cell()
+        else:
+            print('Incorrect memory cell type specified!')
 
 
     def prepare_unidirectional(self):
         print("[*] Preparing unidirectional dynamic RNN...", flush=True)
         with tf.variable_scope("encode") as scope:
             self.rnn_cell = tf.contrib.rnn.MultiRNNCell(
-                [self.create_GRU_cell() for _ in range(self.num_layers)])
+                [self.create_cell() for _ in range(self.num_layers)])
             self.classical_outputs, last_state = tf.nn.dynamic_rnn(
                                                         self.rnn_cell,
                                                         self.inputs,
@@ -91,9 +117,9 @@ class MidiNet(object):
         print("[*] Preparing bidirectional dynamic RNN...", flush=True)
         with tf.variable_scope("encode") as scope:
             self.rnn_cell_fw = tf.contrib.rnn.MultiRNNCell(
-                [self.create_GRU_cell() for _ in range(self.num_layers)])
+                [self.create_cell() for _ in range(self.num_layers)])
             self.rnn_cell_bw = tf.contrib.rnn.MultiRNNCell(
-                [self.create_GRU_cell() for _ in range(self.num_layers)])
+                [self.create_cell() for _ in range(self.num_layers)])
             (self.rnn_fw, self.rnn_bw), last_state = tf.nn.bidirectional_dynamic_rnn(
                                                         self.rnn_cell_fw,
                                                         self.rnn_cell_bw,
