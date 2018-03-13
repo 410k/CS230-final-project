@@ -18,7 +18,7 @@ parser.add_argument("-ct", "--cell_type",
                     help="Memory cell type to use in the RNN")
 # input data options
 parser.add_argument("-sf", "--sampling_frequency",
-                    type=int, default=8000,
+                    type=int, default=11025,
                     help="The sampling frequency (Hz) of the audio input")
 parser.add_argument("-tw", "--time_window_duration",
                     type=float, default=0.05,
@@ -186,7 +186,7 @@ def main():
         checkpoint = ModelCheckpoint(checkpoint_filepath, monitor='loss', verbose=1, period=epoch_save_interval)
         csv_filename = 'training_log.csv'
         csv_filepath = os.path.join(dirs['current_run'], csv_filename)
-        csv_logger = CSVLogger(csv_filepath)
+        csv_logger = CSVLogger(csv_filepath, append=True)
         callbacks_list = [checkpoint, csv_logger]
         history_callback = model.fit(X_train, Y_train, epochs=num_epochs+starting_epoch, 
             initial_epoch=starting_epoch, batch_size=batch_size, callbacks=callbacks_list)
