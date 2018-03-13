@@ -138,7 +138,7 @@ def main():
     if args.load_model:
         # assumes that model name is [name]-[e][epoch_number]-[other_stuff]
         model_filename = args.load_model
-        model_epoch_str = model_filename.split('.')[0].split('-')[1]
+        model_epoch_str = model_filename.split('.hdf5')[0].split('-')[1]
         model_epoch = model_epoch_str[1:]
         print("[*] Loading " + args.load_model + " and continuing from epoch " + model_epoch, flush=True)
         model_path = os.path.join(dirs['model_path'], model_filename)
@@ -147,7 +147,7 @@ def main():
     elif args.load_last:
         # list all the .ckpt files in a tuple (epoch, model_name)
         tree = os.listdir(dirs["model_path"])
-        files = [(int(file.split('.')[0].split('-')[1][1:]), file.split('.')[0]) for file in tree]
+        files = [(int(file.split('.')[0].split('-')[1][1:]), file.split('.hdf5')[0]) for file in tree]
         # find the properties of the last checkpoint
         files.sort(key = lambda t: t[0])
         target_file = files[-1]
