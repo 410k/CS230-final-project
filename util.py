@@ -37,35 +37,69 @@ def setup_dirs(args):
     return dirs
 
 
-def load_data(dirpath, example_duration, time_window_duration, sampling_frequency):
+def load_data(data_root_path, example_duration, time_window_duration, sampling_frequency):
+    if sampling_frequency == 44100:
+        data_path = os.path.join(data_root_path, 'TPD 44kHz')
+    elif sampling_frequency == 22050:
+        data_path = os.path.join(data_root_path, 'TPD 22kHz')
+    elif sampling_frequency == 11025:
+        data_path = os.path.join(data_root_path, 'TPD 11kHz')
+    else:
+        raise ValueError('sampling frequency not recognized!')
+
+    if time_window_duration == 0.05:
+        twd_suffix = '_dt50'
+    elif time_window_duration == 0.025:
+        twd_suffix = '_dt25'
+    else:
+        raise ValueError('time window duration not recognized!')
+    midi_path = os.path.join(data_path, twd_suffix)
+
     X_data, Y_data, filenames = [], [], []
 
-    num_pts_per_example = int(example_duration * sampling_frequency)
+    # need to do some rounding because 50 ms at 11025 is 551.25 samples! (which
+    # will not work)
+    num_pts_per_window = int(np.round(time_window_duration * sampling_frequency))
     num_windows_per_example = int(example_duration / time_window_duration)
+    num_pts_per_example = int(num_pts_per_window * num_windows_per_example)
 
     print('[*] Loading data...', flush=True)
-    listing = glob.glob(os.path.join(dirpath, '*.mat'))
-    for i, filename in enumerate(listing):
-        filename = filename.split('/')[-1].split('.')[0]
+    wav_listing = glob.glob(os.path.join(data_path, '*.wav'))
+    midi_listing = glob.glob(os.path.join(midi_path, '*.mat'))
+    target_wav_files = []
+    target_midi_files = []
+    for midi_file in midi_listing:
+        filename = midi_file.split('/')[-1].split(twd_suffix+'.mat')[0]
+        corresponding_wav_file = os.path.join(data_path, filename+'_sf'+str(sampling_frequency)+'.wav')
+        if corresponding_wav_file in wav_listing:
+            target_wav_files.append(corresponding_wav_file)
+            target_midi_files.append(midi_file)
+
+    #
+    for i, midi_filepath in enumerate(target_midi_files):
+        filename = midi_filepath.split('/')[-1].split(twd_suffix+'.mat')[0]
+        print('   loading ' + filename)
         # load the MIDI file
-        midi_filepath = os.path.join(dirpath, filename + '.mat')
         data = scipy.io.loadmat(midi_filepath)
-        X = data['X']
+        X = data['Xin']
         num_examples_in_midi = np.ceil(X.shape[0] / num_windows_per_example)
         # load the wav file
-        wav_filepath = os.path.join(dirpath, filename + '.wav')
+        wav_filepath = target_wav_files[i]
         fs, Y = scipy.io.wavfile.read(wav_filepath)
         Y = Y.astype(float)
         Y = Y / 32768   # scipy.io.wavfile outputs values that are int16
         assert(fs == sampling_frequency)
         num_examples_in_wav = np.ceil(len(Y) / sampling_frequency / example_duration)
-        # make sure there will be the same number of examples from each file
-        assert(num_examples_in_midi == num_examples_in_wav)
+        # # make sure there will be the same number of examples from each file
+        # assert(num_examples_in_midi == num_examples_in_wav)
         # pad both arrays
         pad_amount_X = int(num_examples_in_midi * num_windows_per_example) - X.shape[0]
-        X = np.pad(X, (pad_amount_X,0), 'constant')
-        pad_amount_Y = int(num_examples_in_wav * num_pts_per_example) - Y.shape[0]
-        Y = np.pad(Y, (pad_amount_Y,0), 'constant')
+        X = np.pad(X, ((0,pad_amount_X), (0,0)), 'constant')
+        if num_examples_in_midi >= num_examples_in_wav:
+            pad_amount_Y = int(num_examples_in_midi * num_pts_per_example) - Y.shape[0]
+            Y = np.pad(Y, ((0,pad_amount_Y)), 'constant')
+        else:
+            Y = Y[0:int(num_examples_in_midi*num_pts_per_example)]
         # create the examples
         for example_num in range(int(num_examples_in_midi)):
             example_x = X[example_num*num_windows_per_example:(example_num+1)*num_windows_per_example, :]
@@ -75,10 +109,11 @@ def load_data(dirpath, example_duration, time_window_duration, sampling_frequenc
             Y_data.append(example_y)
             filenames.append(filename)
 
-        X_data = np.stack(X_data)
-        Y_data = np.stack(Y_data)
-        assert(X_data.shape[0] == Y_data.shape[0])
-        assert(X_data.shape[1] == Y_data.shape[1])
+
+    X_data = np.stack(X_data)
+    Y_data = np.stack(Y_data)
+    assert(X_data.shape[0] == Y_data.shape[0])
+    assert(X_data.shape[1] == Y_data.shape[1])
 
     return X_data, Y_data, filenames
 
