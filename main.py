@@ -219,6 +219,7 @@ def main():
         X_data, Y_data, filenames = load_data(data_path, example_duration, time_window_duration, sampling_frequency)
 
         # evaluate model on test data
+        print('[*] Making predictions', flush=True)
         Y_data_pred = model.predict(X_data, batch_size=batch_size)
 
         # save predictions

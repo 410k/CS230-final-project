@@ -78,7 +78,7 @@ def load_data(data_root_path, example_duration, time_window_duration, sampling_f
     #
     for i, midi_filepath in enumerate(target_midi_files):
         filename = midi_filepath.split('/')[-1].split(twd_suffix+'.mat')[0]
-        print('   loading ' + filename)
+        print('   loading ' + filename, flush=True)
         # load the MIDI file
         data = scipy.io.loadmat(midi_filepath)
         X = data['Xin']
@@ -89,7 +89,7 @@ def load_data(data_root_path, example_duration, time_window_duration, sampling_f
         Y = Y.astype(float)
         Y = Y / 32768   # scipy.io.wavfile outputs values that are int16
         assert(fs == sampling_frequency)
-        num_examples_in_wav = np.ceil(len(Y) / sampling_frequency / example_duration)
+        num_examples_in_wav = np.ceil(len(Y) / num_pts_per_example)
         # # make sure there will be the same number of examples from each file
         # assert(num_examples_in_midi == num_examples_in_wav)
         # pad both arrays
