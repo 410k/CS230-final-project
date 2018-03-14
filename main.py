@@ -64,13 +64,13 @@ parser.add_argument("-ll", "--load_last",
 parser.add_argument("-m", "--mode",
                     choices=['train', 'predict'], default='train',
                     help="Mode to operate model in")
-parser.add_argument("-pdd", "--predict_data_dir",
-                    choices=['test_dev', 'test'], default='test_dev',
-                    help="Data used for prediction")
 # file system options
 parser.add_argument("--data_dir",
                     type=str, default="./data",
                     help="Directory of datasets")
+parser.add_argument("-pdd", "--predict_data_dir",
+                    choices=['test_dev', 'test'], default='test',
+                    help="Data used for prediction")
 parser.add_argument("--runs_dir",
                     type=str, default="./runs",
                     help="The name of the model which will also be the name of the session folder")
@@ -165,8 +165,7 @@ def main():
     if args.mode == 'train':
         # load data
         train_path = dirs['train_path']
-        X_data, Y_data, filenames = load_data(train_path, example_duration, time_window_duration, sampling_frequency)
-        X_train, X_train_dev, Y_train, Y_train_dev = train_test_split(X_data, Y_data, test_size=0.1)
+        X_train, Y_train, filenames = load_data(train_path, example_duration, time_window_duration, sampling_frequency)
         input_shape = (X_train.shape[1], X_train.shape[2])
         output_shape = (Y_train.shape[1], Y_train.shape[2])
 
@@ -204,6 +203,8 @@ def main():
         model.save(filepath)
 
         # evaluate model on training and train_dev data
+        train_dev_path = dirs['train_dev_path']
+        X_train_dev, Y_train_dev, filenames = load_data(train_dev_path, example_duration, time_window_duration, sampling_frequency)
         Y_train_dev_pred = model.predict(X_train_dev, batch_size=batch_size)
         Y_train_pred = model.predict(X_train, batch_size=batch_size)
 
