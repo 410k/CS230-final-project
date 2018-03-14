@@ -37,13 +37,13 @@ def setup_dirs(args):
     return dirs
 
 
-def load_data(data_root_path, example_duration, time_window_duration, sampling_frequency):
+def load_data(data_path, example_duration, time_window_duration, sampling_frequency):
     if sampling_frequency == 44100:
-        data_path = os.path.join(data_root_path, 'TPD 44kHz')
+        wav_path = os.path.join(data_path, 'TPD 44kHz')
     elif sampling_frequency == 22050:
-        data_path = os.path.join(data_root_path, 'TPD 22kHz')
+        wav_path = os.path.join(data_path, 'TPD 22kHz')
     elif sampling_frequency == 11025:
-        data_path = os.path.join(data_root_path, 'TPD 11kHz')
+        wav_path = os.path.join(data_path, 'TPD 11kHz')
     else:
         raise ValueError('sampling frequency not recognized!')
 
@@ -64,13 +64,13 @@ def load_data(data_root_path, example_duration, time_window_duration, sampling_f
     num_pts_per_example = int(num_pts_per_window * num_windows_per_example)
 
     print('[*] Loading data...', flush=True)
-    wav_listing = glob.glob(os.path.join(data_path, '*.wav'))
+    wav_listing = glob.glob(os.path.join(wav_path, '*.wav'))
     midi_listing = glob.glob(os.path.join(midi_path, '*.mat'))
     target_wav_files = []
     target_midi_files = []
     for midi_file in midi_listing:
         filename = midi_file.split('/')[-1].split(twd_suffix+'.mat')[0]
-        corresponding_wav_file = os.path.join(data_path, filename+'_sf'+str(sampling_frequency)+'.wav')
+        corresponding_wav_file = os.path.join(wav_path, filename+'_sf'+str(sampling_frequency)+'.wav')
         if corresponding_wav_file in wav_listing:
             target_wav_files.append(corresponding_wav_file)
             target_midi_files.append(midi_file)
