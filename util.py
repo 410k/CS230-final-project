@@ -38,7 +38,7 @@ def setup_dirs(args):
     return dirs
 
 
-def load_data(data_path, example_duration, time_window_duration, sampling_frequency, loss_domain):
+def load_data(data_path, example_duration, time_window_duration, sampling_frequency, loss_domain, elc):
     if sampling_frequency == 44100:
         wav_path = os.path.join(data_path, 'TPD 44kHz')
     elif sampling_frequency == 22050:

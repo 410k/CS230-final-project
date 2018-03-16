@@ -25,3 +25,10 @@ def iso226(phon = 40, sampling_freq = 11025, num_points = 551):
     spl = interpolate.splev(fnew,tck,der=0)
 
     return spl, fnew
+
+def weight_loss(sampling_frequency, output_shape):
+        # apply equal loudness contour weighting 
+        elc,_ = iso226(30, sampling_frequency, output_shape[1]/2) 
+        elc = (10**(-np.concatenate((elc,elc),axis = 0))/20) # convert from dB and invert
+        elc = elc/np.max(elc) # normalize so maximum is 1
+        return elc

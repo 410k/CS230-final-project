@@ -5,13 +5,14 @@ from keras.layers import LSTM, GRU
 from keras.layers import TimeDistributed
 from keras.layers import Lambda
 from iso226 import iso226
+from iso226 import weight_loss
 import numpy as np
 
 
-def MidiNet(input_shape, output_shape, loss_domain, sampling_frequency, 
+def MidiNet(input_shape, output_shape, loss_domain, elc, 
             num_hidden_units=128, num_layers=2, unidirectional_flag=False,
             cell_type='GRU'):
-
+    
     # create RNN
     print('[*] Creating network', flush=True)
     model = Sequential()
@@ -25,7 +26,7 @@ def MidiNet(input_shape, output_shape, loss_domain, sampling_frequency,
     model.add(TimeDistributed(Dense(output_shape[1], activation=None)))
     # add frequency domain weighting function
     if loss_domain == 'frequency':
-        model.add(Lambda( lambda x : weight_loss(x,sampling_frequency,output_shape)))
+        model.add(Lambda(lambda x: elc*x))
     return model
 
 
@@ -45,10 +46,10 @@ def create_bidirectional(cell_type, input_shape, num_hidden_units):
     else:
         print('Incorrect cell type specified!')
         
-def weight_loss(x, sampling_frequency, output_shape):
+#def weight_loss(x, sampling_frequency, output_shape):
         # apply equal loudness contour weighting 
-        elc,_ = iso226(30, sampling_frequency, output_shape[1]/2) 
-        elc = (10**(-np.concatenate((elc,elc),axis = 0))/20) # convert from dB and invert
-        elc = elc/np.max(elc) # normalize so maximum is 1
-        x = x*elc 
-        return x
+#        elc,_ = iso226(30, sampling_frequency, output_shape[1]/2) 
+#        elc = (10**(-np.concatenate((elc,elc),axis = 0))/20) # convert from dB and invert
+#        elc = elc/np.max(elc) # normalize so maximum is 1
+#        x = x*elc 
+#        return x

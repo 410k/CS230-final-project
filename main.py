@@ -115,6 +115,8 @@ from util import setup_dirs, load_data, save_predictions
 from keras.callbacks import ModelCheckpoint, CSVLogger
 from keras.models import load_model
 
+from iso226 import weight_loss
+
 
 def main():
     dirs = setup_dirs(args)
@@ -134,7 +136,8 @@ def main():
     epoch_save_interval = args.epoch_save_interval
 
     gpus = args.gpus
-
+    import pdb
+    pdb.set_trace()
     # load previous models
     if args.load_model:
         # assumes that model name is [name]-[e][epoch_number]-[other_stuff]
@@ -173,7 +176,8 @@ def main():
         # create & compile model
         if not 'model' in vars():
             with tf.device('/cpu:0'):
-                model = MidiNet(input_shape, output_shape, loss_domain, sampling_frequency, num_hidden_units, num_layers, 
+                elc = weight_loss(sampling_frequency, output_shape)
+                model = MidiNet(input_shape, output_shape, loss_domain, elc, num_hidden_units, num_layers, 
                     unidirectional_flag, cell_type)
             if gpus >= 2:
                 model = multi_gpu_model(model, gpus=gpus)
@@ -184,6 +188,12 @@ def main():
         checkpoint_filename = 'model-e{epoch:03d}-loss{loss:.4f}.hdf5'
         checkpoint_filepath = os.path.join(dirs['model_path'], checkpoint_filename)
         checkpoint = ModelCheckpoint(checkpoint_filepath, monitor='loss', verbose=1, period=epoch_save_interval)
+        
+        # save weights
+        cp_wt_filename = 'model-e{epoch:03d}-loss{loss:.4f}.h5'
+        cp_wt_filepath = os.path.join(dirs['model_path'], cp_wt_filename)
+        model.save_weights(cp_wt_filepath)
+        
         csv_filename = 'training_log.csv'
         csv_filepath = os.path.join(dirs['current_run'], csv_filename)
         csv_logger = CSVLogger(csv_filepath, append=True)
