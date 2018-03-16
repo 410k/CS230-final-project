@@ -116,6 +116,7 @@ def load_data(data_path, example_duration, time_window_duration, sampling_freque
     if loss_domain == 'frequency':
         Y_data = np.fft.rfft(Y_data,axis=2)
         Y_data = np.concatenate((np.real(Y_data),np.imag(Y_data)),axis=2)
+        Y_data = np.log(Y_data)
         import pdb
         pdb.set_trace()
             
