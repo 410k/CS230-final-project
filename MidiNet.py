@@ -3,9 +3,12 @@ from keras.layers import Bidirectional
 from keras.layers import Dense
 from keras.layers import LSTM, GRU
 from keras.layers import TimeDistributed
+from keras.layers import Lambda
+from iso226 import iso226
+import numpy as np
 
 
-def MidiNet(input_shape, output_shape, 
+def MidiNet(input_shape, output_shape, loss_domain, sampling_frequency, 
             num_hidden_units=128, num_layers=2, unidirectional_flag=False,
             cell_type='GRU'):
 
@@ -20,6 +23,9 @@ def MidiNet(input_shape, output_shape,
         model.add(layer)
     # fully connected layer
     model.add(TimeDistributed(Dense(output_shape[1], activation=None)))
+    # add frequency domain weighting function
+    if loss_domain == 'frequency':
+        model.add(Lambda( lambda x : weight_loss(x,sampling_frequency,output_shape)))
     return model
 
 
@@ -38,3 +44,11 @@ def create_bidirectional(cell_type, input_shape, num_hidden_units):
         return Bidirectional(create_LSTM_cell(num_hidden_units), input_shape=input_shape)
     else:
         print('Incorrect cell type specified!')
+        
+def weight_loss(x, sampling_frequency, output_shape):
+        # apply equal loudness contour weighting 
+        elc,_ = iso226(30, sampling_frequency, output_shape[1]/2) 
+        elc = (10**(-np.concatenate((elc,elc),axis = 0))/20) # convert from dB and invert
+        elc = elc/np.max(elc) # normalize so maximum is 1
+        x = x*elc 
+        return x

@@ -3,6 +3,7 @@ import os
 import scipy.io
 import scipy.io.wavfile
 import glob
+from iso226 import iso226
 
 def setup_dirs(args):
     print('[*] Setting up directory...', flush=True)
@@ -114,11 +115,16 @@ def load_data(data_path, example_duration, time_window_duration, sampling_freque
     Y_data = np.stack(Y_data)
     # train on the frequency domain loss function
     if loss_domain == 'frequency':
+        #import pdb
+        #pdb.set_trace()
         Y_data = np.fft.rfft(Y_data,axis=2)
         Y_data = np.concatenate((np.real(Y_data),np.imag(Y_data)),axis=2)
-        Y_data = np.log(Y_data)
-        import pdb
-        pdb.set_trace()
+        # apply equal loudness contour weighting 
+        elc,_ = iso226(30, sampling_frequency, Y_data.shape[2]/2) 
+        elc = (10**(-np.concatenate((elc,elc),axis = 0))/20) # convert from dB and invert
+        elc = elc/np.max(elc)
+        Y_data = Y_data*elc 
+
             
             
     assert(X_data.shape[0] == Y_data.shape[0])

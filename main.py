@@ -173,7 +173,7 @@ def main():
         # create & compile model
         if not 'model' in vars():
             with tf.device('/cpu:0'):
-                model = MidiNet(input_shape, output_shape, num_hidden_units, num_layers, 
+                model = MidiNet(input_shape, output_shape, loss_domain, sampling_frequency, num_hidden_units, num_layers, 
                     unidirectional_flag, cell_type)
             if gpus >= 2:
                 model = multi_gpu_model(model, gpus=gpus)
