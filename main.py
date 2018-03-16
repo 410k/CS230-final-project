@@ -122,7 +122,8 @@ def main():
     example_duration = args.example_duration
     time_window_duration = args.time_window_duration
     sampling_frequency = args.sampling_frequency
-
+    loss_domain = args.loss_domain
+    
     num_hidden_units = args.hidden_units
     num_layers = args.layers
     unidirectional_flag = args.unidirectional
@@ -165,7 +166,7 @@ def main():
     if args.mode == 'train':
         # load data
         train_path = dirs['train_path']
-        X_train, Y_train, filenames = load_data(train_path, example_duration, time_window_duration, sampling_frequency)
+        X_train, Y_train, filenames = load_data(train_path, example_duration, time_window_duration, sampling_frequency, loss_domain)
         input_shape = (X_train.shape[1], X_train.shape[2])
         output_shape = (Y_train.shape[1], Y_train.shape[2])
 
@@ -204,7 +205,7 @@ def main():
 
         # evaluate model on training and train_dev data
         train_dev_path = dirs['train_dev_path']
-        X_train_dev, Y_train_dev, filenames = load_data(train_dev_path, example_duration, time_window_duration, sampling_frequency)
+        X_train_dev, Y_train_dev, filenames = load_data(train_dev_path, example_duration, time_window_duration, sampling_frequency, loss_domain)
         Y_train_dev_pred = model.predict(X_train_dev, batch_size=batch_size)
         Y_train_pred = model.predict(X_train, batch_size=batch_size)
 
@@ -217,7 +218,7 @@ def main():
             data_path = dirs['test_dev_path']
         elif args.predict_data_dir == 'test':
             data_path = dirs['test_path']
-        X_data, Y_data, filenames = load_data(data_path, example_duration, time_window_duration, sampling_frequency)
+        X_data, Y_data, filenames = load_data(data_path, example_duration, time_window_duration, sampling_frequency, loss_domain)
 
         # evaluate model on test data
         print('[*] Making predictions', flush=True)

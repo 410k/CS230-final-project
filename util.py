@@ -37,7 +37,7 @@ def setup_dirs(args):
     return dirs
 
 
-def load_data(data_path, example_duration, time_window_duration, sampling_frequency):
+def load_data(data_path, example_duration, time_window_duration, sampling_frequency, loss_domain):
     if sampling_frequency == 44100:
         wav_path = os.path.join(data_path, 'TPD 44kHz')
     elif sampling_frequency == 22050:
@@ -112,6 +112,14 @@ def load_data(data_path, example_duration, time_window_duration, sampling_freque
 
     X_data = np.stack(X_data)
     Y_data = np.stack(Y_data)
+    # train on the frequency domain loss function
+    if loss_domain == 'frequency':
+        Y_data = np.fft.rfft(Y_data,axis=2)
+        Y_data = np.concatenate((np.real(Y_data),np.imag(Y_data)),axis=2)
+        import pdb
+        pdb.set_trace()
+            
+            
     assert(X_data.shape[0] == Y_data.shape[0])
     assert(X_data.shape[1] == Y_data.shape[1])
 
