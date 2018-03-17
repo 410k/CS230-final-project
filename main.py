@@ -85,36 +85,48 @@ parser.add_argument("--runs_dir",
                     help="The name of the model which will also be the name of the session folder")
 args = parser.parse_args()
 
+
+# display input arguments
+# architecture options
+architecture_options = ['hidden_units', 'layers', 'unidirectional', 'cell_type']
+print('architecture options')
+print('--------------------')
+for var in architecture_options:
+    print(var+' = ', eval('args.'+var))
 print()
-print('current_run =',        args.current_run)
-print('num_songs =',          args.num_songs)
-print('datasplit_csv =',      args.datasplit_csv)
-print('hidden_units =',       args.hidden_units)
-print('layers =',             args.layers)
-print('unidirectional =',     args.unidirectional)
-print('cell_type =',          args.cell_type)
+
+# data options
+data_options = ['num_songs', 'datasplit_csv', 'sampling_frequency', 
+                'time_window_duration', 'example_duration']
+print('data options');
+print('------------')
+for var in data_options:
+    print(var+' = ', eval('args.'+var))
 print()
-print('sampling_frequency =', args.sampling_frequency)
-print('time_window_duration =', args.time_window_duration)
-print('example_duration =',   args.example_duration)
+
+# training options
+print('training options')
+print('----------------')
+training_options = ['loss_domain', 'equal_loudness_curve', 'batch_size', 
+                    'learning_rate', 'epochs', 'starting_epoch', 
+                    'epoch_save_interval', 'epoch_val_interval', 
+                    'epoch_eval_interval']
+for var in training_options:
+    print(var+' = ', eval('args.'+var))
 print()
-print('loss_domain =',        args.loss_domain)
-print('equal loudness weighting =', args.equal_loudness_curve)
-print('batch_size =',         args.batch_size)
-print('learning_rate =',      args.learning_rate)
-print('epochs =',             args.epochs)
-print('starting_epoch =',     args.starting_epoch)
-print('epoch_save_interval =',args.epoch_save_interval)
-print('epoch_val_interval =', args.epoch_val_interval)
-print('epoch_eval_interval =',args.epoch_eval_interval)
+
+# other options
+print('other options')
+print('-------------')
+other_options = ['load_model', 'load_last', 'mode', 'predict_data_dir', 
+                 'data_dir', 'runs_dir']
+for var in other_options:
+    print(var+' = ', eval('args.'+var))
 print()
-print('load_model =',         args.load_model)
-print('load_last =',          args.load_last)
-print('mode =',               args.mode)
-print('predict_data_dir =',   args.predict_data_dir)
-print('data_dir =',           args.data_dir)
-print('runs_dir =',           args.runs_dir)
-print()
+
+
+import pdb
+pdb.set_trace()
 
 import os
 import numpy as np
