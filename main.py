@@ -17,6 +17,12 @@ parser.add_argument("-ct", "--cell_type",
                     choices=['GRU', 'LSTM'], default='GRU',
                     help="Memory cell type to use in the RNN")
 # input data options
+parser.add_argument("-nsongs", "--num_songs",
+                    type=int, default=349,
+                    help="The total number of songs to include in the dataset")
+parser.add_argument("-csv", "--datasplit_csv",
+                    type=str, default=None,
+                    help="The csv filename for the data split")
 parser.add_argument("-sf", "--sampling_frequency",
                     type=int, default=11025,
                     help="The sampling frequency (Hz) of the audio input")
@@ -78,6 +84,8 @@ args = parser.parse_args()
 
 print()
 print('current_run =',        args.current_run)
+print('num_songs =',          args.num_songs)
+print('datasplit_csv =',      args.datasplit_csv)
 print('hidden_units =',       args.hidden_units)
 print('layers =',             args.layers)
 print('unidirectional =',     args.unidirectional)
@@ -111,13 +119,25 @@ from MidiNet import MidiNet
 from sklearn.model_selection import train_test_split
 
 import scipy.io
-from util import setup_dirs, load_data, save_predictions
+from util import setup_dirs, load_data, save_predictions, split_data
 from keras.callbacks import ModelCheckpoint, CSVLogger
 from keras.models import load_model
+import pandas as pd
+
 
 
 def main():
     dirs = setup_dirs(args)
+
+    num_songs = args.num_songs
+    datasplit_csv = args.datasplit_csv
+
+    # if no csv_filename provided, split data and generate a csv file
+    if datasplit_csv == None:
+        datasplit_dict = split_data(os.path.join(dirs['data_path'],'TPD 11kHz'), num_songs)
+    else:
+        df = pd.read_csv(datasplit_csv, usecols=['filename','train', 'train_dev','test'])
+        datasplit_dict = df.to_dict('list')
 
     example_duration = args.example_duration
     time_window_duration = args.time_window_duration
@@ -164,8 +184,8 @@ def main():
     # train or evaluate the model
     if args.mode == 'train':
         # load data
-        train_path = dirs['train_path']
-        X_train, Y_train, filenames = load_data(train_path, example_duration, time_window_duration, sampling_frequency)
+        # train_path = dirs['train_path']
+        X_train, Y_train, filenames = load_data(dirs['data_path'], datasplit_dict, 'train', example_duration, time_window_duration, sampling_frequency)
         input_shape = (X_train.shape[1], X_train.shape[2])
         output_shape = (Y_train.shape[1], Y_train.shape[2])
 
@@ -203,8 +223,8 @@ def main():
         model.save(filepath)
 
         # evaluate model on training and train_dev data
-        train_dev_path = dirs['train_dev_path']
-        X_train_dev, Y_train_dev, filenames = load_data(train_dev_path, example_duration, time_window_duration, sampling_frequency)
+        # train_dev_path = dirs['train_dev_path']
+        X_train_dev, Y_train_dev, filenames = load_data(dirs['data_path'], datasplit_dict, 'train_dev', example_duration, time_window_duration, sampling_frequency)
         Y_train_dev_pred = model.predict(X_train_dev, batch_size=batch_size)
         Y_train_pred = model.predict(X_train, batch_size=batch_size)
 
@@ -213,11 +233,11 @@ def main():
         save_predictions(dirs['pred_path'], 'train', X_train, Y_train, Y_train_pred)
 
     elif args.mode == 'predict':
-        if args.predict_data_dir == 'test_dev':
-            data_path = dirs['test_dev_path']
-        elif args.predict_data_dir == 'test':
-            data_path = dirs['test_path']
-        X_data, Y_data, filenames = load_data(data_path, example_duration, time_window_duration, sampling_frequency)
+        # if args.predict_data_dir == 'test_dev':
+        #     data_path = dirs['test_dev_path']
+        # elif args.predict_data_dir == 'test':
+        #     data_path = dirs['test_path']
+        X_data, Y_data, filenames = load_data(dirs['data_path'], datasplit_dict, 'test', example_duration, time_window_duration, sampling_frequency)
 
         # evaluate model on test data
         print('[*] Making predictions', flush=True)

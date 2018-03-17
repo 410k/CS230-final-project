@@ -2,4 +2,9 @@
 **/
 .DS_Store
 .nfs*
+*.mat
+*.pptx
+*.mp3
+*.png
 *.out
+*.csv
