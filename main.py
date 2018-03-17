@@ -86,49 +86,83 @@ parser.add_argument("--runs_dir",
 args = parser.parse_args()
 
 
-# display input arguments
+import os
+from util import setup_dirs
+
+
+## display input arguments
+dirs = setup_dirs(args)
+run_details_file = os.path.join(dirs['current_run'], 'run_details.txt')
+
 # architecture options
 architecture_options = ['hidden_units', 'layers', 'unidirectional', 'cell_type']
 print('architecture options')
 print('--------------------')
+with open(run_details_file,'a') as file:
+    print('architecture options', file=file)
+    print('--------------------', file=file)
 for var in architecture_options:
     print(var+' = ', eval('args.'+var))
+    with open(run_details_file,'a') as file:
+            print(var+' = ', eval('args.'+var), file=file)
 print()
+with open(run_details_file,'a') as file:
+    print('', file=file)
 
 # data options
 data_options = ['num_songs', 'datasplit_csv', 'sampling_frequency', 
                 'time_window_duration', 'example_duration']
 print('data options');
 print('------------')
+with open(run_details_file,'a') as file:
+    print('data options', file=file)
+    print('------------', file=file)
 for var in data_options:
     print(var+' = ', eval('args.'+var))
+    with open(run_details_file,'a') as file:
+            print(var+' = ', eval('args.'+var), file=file)
 print()
+with open(run_details_file,'a') as file:
+    print('', file=file)
 
 # training options
 print('training options')
 print('----------------')
+with open(run_details_file,'a') as file:
+    print('training options', file=file)
+    print('----------------', file=file)
 training_options = ['loss_domain', 'equal_loudness_curve', 'batch_size', 
                     'learning_rate', 'epochs', 'starting_epoch', 
                     'epoch_save_interval', 'epoch_val_interval', 
                     'epoch_eval_interval']
 for var in training_options:
     print(var+' = ', eval('args.'+var))
+    with open(run_details_file,'a') as file:
+            print(var+' = ', eval('args.'+var), file=file)
 print()
+with open(run_details_file,'a') as file:
+    print('', file=file)
 
 # other options
 print('other options')
 print('-------------')
+with open(run_details_file,'a') as file:
+    print('other options', file=file)
+    print('-------------', file=file)
 other_options = ['load_model', 'load_last', 'mode', 'predict_data_dir', 
                  'data_dir', 'runs_dir']
 for var in other_options:
     print(var+' = ', eval('args.'+var))
+    with open(run_details_file,'a') as file:
+            print(var+' = ', eval('args.'+var), file=file)
 print()
+with open(run_details_file,'a') as file:
+    print('', file=file)
 
 
 import pdb
 pdb.set_trace()
 
-import os
 import numpy as np
 import tensorflow as tf
 from MidiNet import MidiNet
