@@ -131,6 +131,11 @@ import pandas as pd
 
 from iso226 import weight_loss
 
+# display whether gpu can be seen. if cpu & gpu are available, keras will
+# automatically choose the gpu
+from keras import backend as K
+K.tensorflow_backend._get_available_gpus()
+
 
 def main():
     dirs = setup_dirs(args)
