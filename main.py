@@ -33,6 +33,9 @@ parser.add_argument("-g", "--gpus",
 parser.add_argument("-ld", "--loss_domain",
                     choices=['time', 'frequency'], default='time',
                     help="The domain in which the loss function is calculated")
+parser.add_argument("-elc", "--equal_loudness_curve",
+                    action='store_true',
+                    help="Apply equal loudness weighting on frequency domain loss")
 parser.add_argument("-bs", "--batch_size",
                     type=int, default=8,
                     help="The number of examples in each mini batch")
@@ -88,6 +91,7 @@ print('time_window_duration =', args.time_window_duration)
 print('example_duration =',   args.example_duration)
 print()
 print('loss_domain =',        args.loss_domain)
+print('equal loudness weighting =', args.equal_loudness_curve)
 print('batch_size =',         args.batch_size)
 print('learning_rate =',      args.learning_rate)
 print('epochs =',             args.epochs)
@@ -125,6 +129,7 @@ def main():
     time_window_duration = args.time_window_duration
     sampling_frequency = args.sampling_frequency
     loss_domain = args.loss_domain
+    use_equal_loudness = args.equal_loudness_curve
     
     num_hidden_units = args.hidden_units
     num_layers = args.layers
@@ -169,16 +174,18 @@ def main():
     if args.mode == 'train':
         # load data
         train_path = dirs['train_path']
-        X_train, Y_train, filenames = load_data(train_path, example_duration, time_window_duration, sampling_frequency, loss_domain)
+        X_train, Y_train, filenames = load_data(train_path, example_duration, time_window_duration, sampling_frequency,                                                           loss_domain,use_equal_loudness)
         input_shape = (X_train.shape[1], X_train.shape[2])
         output_shape = (Y_train.shape[1], Y_train.shape[2])
 
         # create & compile model
         if not 'model' in vars():
             with tf.device('/cpu:0'):
-                elc = weight_loss(sampling_frequency, output_shape)
+                elc = np.array([])
+                if use_equal_loudness:
+                    elc = weight_loss(sampling_frequency, output_shape)
                 model = MidiNet(input_shape, output_shape, loss_domain, elc, num_hidden_units, num_layers, 
-                    unidirectional_flag, cell_type)
+                                unidirectional_flag, cell_type)
             if gpus >= 2:
                 model = multi_gpu_model(model, gpus=gpus)
             model.compile(loss='mean_squared_error', optimizer='adam')
@@ -215,7 +222,7 @@ def main():
 
         # evaluate model on training and train_dev data
         train_dev_path = dirs['train_dev_path']
-        X_train_dev, Y_train_dev, filenames = load_data(train_dev_path, example_duration, time_window_duration, sampling_frequency, loss_domain)
+        X_train_dev, Y_train_dev, filenames = load_data(train_dev_path, example_duration, time_window_duration,                                                                           sampling_frequency, loss_domain, use_equal_loudness)
         Y_train_dev_pred = model.predict(X_train_dev, batch_size=batch_size)
         Y_train_pred = model.predict(X_train, batch_size=batch_size)
 
@@ -228,7 +235,7 @@ def main():
             data_path = dirs['test_dev_path']
         elif args.predict_data_dir == 'test':
             data_path = dirs['test_path']
-        X_data, Y_data, filenames = load_data(data_path, example_duration, time_window_duration, sampling_frequency, loss_domain)
+        X_data, Y_data, filenames = load_data(data_path, example_duration, time_window_duration, sampling_frequency, loss_domain,                                              use_equal_loudness)
 
         # evaluate model on test data
         print('[*] Making predictions', flush=True)

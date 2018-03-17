@@ -163,12 +163,12 @@ def save_data(path, quant, one_hot=True):
                 processed_count += 1
     print('\nProcessed {} files out of {}'.format(processed_count, total_file_count))
 
-def load_data(path):
+def load_data(path, output_domain):
     '''Returns lists of input and output numpy matrices.
 
     Arguments:
     path -- Quantised directory path.
-    quant -- Level of quantisation'''
+    output_domain -- 'time','frequency'''
 
     names = []
     X_list = []
@@ -198,6 +198,8 @@ def load_data(path):
 
     # X_list = np.array(X_list)
     # Y_list = np.array(Y_list)
-
+    if output_domain == 'frequency':
+        for y in range Y_list:
+            Y_list[i] = np.rfft(y)
 
     return X_list, Y_list

@@ -38,7 +38,7 @@ def setup_dirs(args):
     return dirs
 
 
-def load_data(data_path, example_duration, time_window_duration, sampling_frequency, loss_domain, elc):
+def load_data(data_path, example_duration, time_window_duration, sampling_frequency, loss_domain, equal_loudness):
     if sampling_frequency == 44100:
         wav_path = os.path.join(data_path, 'TPD 44kHz')
     elif sampling_frequency == 22050:
@@ -119,11 +119,12 @@ def load_data(data_path, example_duration, time_window_duration, sampling_freque
         #pdb.set_trace()
         Y_data = np.fft.rfft(Y_data,axis=2)
         Y_data = np.concatenate((np.real(Y_data),np.imag(Y_data)),axis=2)
-        # apply equal loudness contour weighting 
-        elc,_ = iso226(30, sampling_frequency, Y_data.shape[2]/2) 
-        elc = (10**(-np.concatenate((elc,elc),axis = 0))/20) # convert from dB and invert
-        elc = elc/np.max(elc)
-        Y_data = Y_data*elc 
+        if equal_loudness:
+            # apply equal loudness contour weighting 
+            elc,_ = iso226(30, sampling_frequency, Y_data.shape[2]/2) 
+            elc = (10**(-np.concatenate((elc,elc),axis = 0))/20) # convert from dB and invert
+            elc = elc/np.max(elc)
+            Y_data = Y_data*elc 
 
             
             
