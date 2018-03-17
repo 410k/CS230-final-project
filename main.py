@@ -102,9 +102,9 @@ with open(run_details_file,'a') as file:
     print('architecture options', file=file)
     print('--------------------', file=file)
 for var in architecture_options:
-    print(var+' = ', eval('args.'+var))
+    print(var+' =', eval('args.'+var))
     with open(run_details_file,'a') as file:
-            print(var+' = ', eval('args.'+var), file=file)
+            print(var+' =', eval('args.'+var), file=file)
 print()
 with open(run_details_file,'a') as file:
     print('', file=file)
@@ -118,9 +118,9 @@ with open(run_details_file,'a') as file:
     print('data options', file=file)
     print('------------', file=file)
 for var in data_options:
-    print(var+' = ', eval('args.'+var))
+    print(var+' =', eval('args.'+var))
     with open(run_details_file,'a') as file:
-            print(var+' = ', eval('args.'+var), file=file)
+            print(var+' =', eval('args.'+var), file=file)
 print()
 with open(run_details_file,'a') as file:
     print('', file=file)
@@ -136,9 +136,9 @@ training_options = ['loss_domain', 'equal_loudness_curve', 'batch_size',
                     'epoch_save_interval', 'epoch_val_interval', 
                     'epoch_eval_interval']
 for var in training_options:
-    print(var+' = ', eval('args.'+var))
+    print(var+' =', eval('args.'+var))
     with open(run_details_file,'a') as file:
-            print(var+' = ', eval('args.'+var), file=file)
+            print(var+' =', eval('args.'+var), file=file)
 print()
 with open(run_details_file,'a') as file:
     print('', file=file)
@@ -152,16 +152,13 @@ with open(run_details_file,'a') as file:
 other_options = ['load_model', 'load_last', 'mode', 'predict_data_dir', 
                  'data_dir', 'runs_dir']
 for var in other_options:
-    print(var+' = ', eval('args.'+var))
+    print(var+' =', eval('args.'+var))
     with open(run_details_file,'a') as file:
-            print(var+' = ', eval('args.'+var), file=file)
+            print(var+' =', eval('args.'+var), file=file)
 print()
 with open(run_details_file,'a') as file:
     print('', file=file)
 
-
-import pdb
-pdb.set_trace()
 
 import numpy as np
 import tensorflow as tf
