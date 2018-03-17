@@ -161,8 +161,8 @@ def main():
     epoch_save_interval = args.epoch_save_interval
 
     gpus = args.gpus
-    import pdb
-    pdb.set_trace()
+    # import pdb
+    # pdb.set_trace()
     # load previous models
     if args.load_model:
         # assumes that model name is [name]-[e][epoch_number]-[other_stuff]
