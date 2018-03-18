@@ -4,6 +4,7 @@ from keras.layers import Dense
 from keras.layers import LSTM, GRU
 from keras.layers import TimeDistributed
 from keras.layers import Lambda
+from keras.layers import Dropout
 from keras.layers.normalization import BatchNormalization
 from iso226 import iso226
 from iso226 import weight_loss
@@ -12,7 +13,7 @@ import numpy as np
 
 def MidiNet(input_shape, output_shape, loss_domain, elc = [], 
             num_hidden_units=128, num_layers=2, unidirectional_flag=False,
-            cell_type='GRU', batch_norm_flag=False):
+            cell_type='GRU', batch_norm_flag=False, dropout=0):
     
     # create RNN
     print('[*] Creating network', flush=True)
@@ -25,6 +26,8 @@ def MidiNet(input_shape, output_shape, loss_domain, elc = [],
         model.add(layer)
         if batch_norm_flag:
             model.add(BatchNormalization())
+        if dropout > 0:
+            model.add(Dropout(dropout))
     # fully connected layer
     model.add(TimeDistributed(Dense(output_shape[1], activation=None)))
     # add frequency domain weighting function

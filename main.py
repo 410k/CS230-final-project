@@ -19,6 +19,9 @@ parser.add_argument("-ct", "--cell_type",
 parser.add_argument("-bn", "--batch_norm",
                     action='store_true',
                     help="Use batch norm in every layer")
+parser.add_argument("-do", "--dropout",
+                    type=float, default=0,
+                    help="Dropout rate")
 # input data options
 parser.add_argument("-nsongs", "--num_songs",
                     type=int, default=349,
@@ -98,7 +101,7 @@ dirs = setup_dirs(args)
 run_details_file = os.path.join(dirs['current_run'], 'run_details.txt')
 
 # architecture options
-architecture_options = ['hidden_units', 'layers', 'unidirectional', 'cell_type', 'batch_norm']
+architecture_options = ['hidden_units', 'layers', 'unidirectional', 'cell_type', 'batch_norm','dropout']
 print('architecture options')
 print('--------------------')
 with open(run_details_file,'a') as file:
@@ -208,6 +211,7 @@ def main():
     batch_norm_flag = args.batch_norm
     cell_type = args.cell_type
     batch_size = args.batch_size
+    dropout = args.dropout
 
     num_epochs = args.epochs
     epoch_save_interval = args.epoch_save_interval
@@ -230,7 +234,7 @@ def main():
             if use_equal_loudness:
                 elc = weight_loss(sampling_frequency, output_shape)
             model = MidiNet(input_shape, output_shape, loss_domain, elc, num_hidden_units, num_layers, 
-                            unidirectional_flag, cell_type, batch_norm_flag)
+                            unidirectional_flag, cell_type, batch_norm_flag, dropout)
         if gpus >= 2:
             model = multi_gpu_model(model, gpus=gpus)
         model.compile(loss='mean_squared_error', optimizer='adam')
