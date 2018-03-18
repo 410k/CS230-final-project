@@ -45,7 +45,7 @@ def setup_dirs(args):
             os.makedirs(dir_path)
     return dirs
 
-def split_data(allfilenames_path, num_songs):
+def split_data(allfilenames_path,num_songs):
     # calculate number of songs in train/train_dev/test
     if (num_songs - math.floor(num_songs*0.8)) % 2 == 0:
         ntrain = math.floor(num_songs*0.8)
@@ -59,6 +59,7 @@ def split_data(allfilenames_path, num_songs):
     # get list of all filenames
     allfiles = os.listdir(allfilenames_path)
     allfiles.sort()
+    allfiles.remove('.DS_Store')
     allfilenames = [file.split('_sf11025')[0] for file in allfiles]
     indices = list(range(len(allfiles)))
     random.shuffle(indices)

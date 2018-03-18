@@ -212,6 +212,7 @@ def main():
     # import pdb
     # pdb.set_trace()
     # load previous models
+    '''
     if args.load_model:
         # assumes that model name is [name]-[e][epoch_number]-[other_stuff]
         model_filename = args.load_model
@@ -237,28 +238,46 @@ def main():
         starting_epoch = int(model_epoch)+1
     else:
         starting_epoch = 0
-
+    '''
     # train or evaluate the model
-    if args.mode == 'train':
+#    if args.mode == 'train':
         # load data
-        X_train, Y_train, filenames = load_data(dirs['data_path'], datasplit_dict, 'train', example_duration, time_window_duration, sampling_frequency, loss_domain, use_equal_loudness)
+    X_train, Y_train, filenames = load_data(dirs['data_path'], datasplit_dict, 'train', example_duration, time_window_duration, sampling_frequency, loss_domain, use_equal_loudness)
 
-        input_shape = (X_train.shape[1], X_train.shape[2])
-        output_shape = (Y_train.shape[1], Y_train.shape[2])
+    input_shape = (X_train.shape[1], X_train.shape[2])
+    output_shape = (Y_train.shape[1], Y_train.shape[2])
 
-        # create & compile model
-        if not 'model' in vars():
-            with tf.device('/cpu:0'):
-                elc = np.array([])
-                if use_equal_loudness:
-                    elc = weight_loss(sampling_frequency, output_shape)
-                model = MidiNet(input_shape, output_shape, loss_domain, elc, num_hidden_units, num_layers, 
-                                unidirectional_flag, cell_type)
-            if gpus >= 2:
-                model = multi_gpu_model(model, gpus=gpus)
-            model.compile(loss='mean_squared_error', optimizer='adam')
-        print(model.summary())
+    # create & compile model
+    if not 'model' in vars():
+        with tf.device('/cpu:0'):
+            elc = np.array([])
+            if use_equal_loudness:
+                elc = weight_loss(sampling_frequency, output_shape)
+            model = MidiNet(input_shape, output_shape, loss_domain, elc, num_hidden_units, num_layers, 
+                            unidirectional_flag, cell_type)
+        if gpus >= 2:
+            model = multi_gpu_model(model, gpus=gpus)
+        model.compile(loss='mean_squared_error', optimizer='adam')
+    print(model.summary())
 
+    if args.load_last: # load last set of weights
+        # list all the .ckpt files in a tuple (epoch, model_name)
+        tree = os.listdir(dirs["weight_path"])
+        files = [(int(file.split('.')[0].split('-')[1][1:]), file.split('.h5')[0]) for file in tree]
+        # find the properties of the last checkpoint
+        files.sort(key = lambda t: t[0])
+        target_file = files[-1]
+        model_epoch = target_file[0]
+        model_name = target_file[1]
+        model_filename = model_name + ".h5"
+        print("[*] Loading " + model_filename + " and continuing from epoch " + str(model_epoch), flush=True)
+        model_path = os.path.join(dirs['weight_path'], model_filename)
+        model.load_weights(model_path)
+        starting_epoch = int(model_epoch)+1
+    else:
+        starting_epoch = 0
+        
+    if args.mode == 'train':
         # train the model & run a checkpoint callback
         checkpoint_filename = 'model-e{epoch:03d}-loss{loss:.4f}.hdf5'
         checkpoint_filepath = os.path.join(dirs['model_path'], checkpoint_filename)
