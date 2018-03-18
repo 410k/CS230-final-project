@@ -28,13 +28,15 @@ sbatch <<SLURM
 #SBATCH --job-name="$2"
 #SBATCH --output="$2"-%j.out
 #SBATCH --error="$2"-%j.out
-#SBATCH --partition=normal
+#SBATCH --partition=gpu
+#SBATCH --gres=gpu:1
 #SBATCH --time=02:00:00
-#SBATCH --nodes=1
-#SBATCH --mem=4G
+#SBATCH --mem=10G
 
 ## setup environment
-source venv/bin/activate
+module load cuda
+module load cudnn
+source venv_gpu/bin/activate
 
 ## run code
 $1
@@ -51,14 +53,15 @@ sbatch <<SLURM
 #SBATCH --output="$2"-%j.out
 #SBATCH --error="$2"-%j.out
 #SBATCH --partition=normal
-#SBATCH --time=02:00:00
-#SBATCH --nodes=1
-#SBATCH --mem=4G
+#SBATCH --time=08:00:00
+#SBATCH --mem=10G
 
 ## setup environment
 module purge
 module load python/3.6.1
 source venv/bin/activate
+
+module load py-tensorflow/1.5.0_py36
 
 ## run code
 $1
