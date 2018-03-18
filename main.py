@@ -16,6 +16,9 @@ parser.add_argument("-uni", "--unidirectional",
 parser.add_argument("-ct", "--cell_type",
                     choices=['GRU', 'LSTM'], default='GRU',
                     help="Memory cell type to use in the RNN")
+parser.add_argument("-bn", "--batch_norm",
+                    action='store_true',
+                    help="Use batch norm in every layer")
 # input data options
 parser.add_argument("-nsongs", "--num_songs",
                     type=int, default=349,
@@ -95,7 +98,7 @@ dirs = setup_dirs(args)
 run_details_file = os.path.join(dirs['current_run'], 'run_details.txt')
 
 # architecture options
-architecture_options = ['hidden_units', 'layers', 'unidirectional', 'cell_type']
+architecture_options = ['hidden_units', 'layers', 'unidirectional', 'cell_type', 'batch_norm']
 print('architecture options')
 print('--------------------')
 with open(run_details_file,'a') as file:
@@ -202,6 +205,7 @@ def main():
     num_hidden_units = args.hidden_units
     num_layers = args.layers
     unidirectional_flag = args.unidirectional
+    batch_norm_flag = args.batch_norm
     cell_type = args.cell_type
     batch_size = args.batch_size
 
@@ -226,7 +230,7 @@ def main():
             if use_equal_loudness:
                 elc = weight_loss(sampling_frequency, output_shape)
             model = MidiNet(input_shape, output_shape, loss_domain, elc, num_hidden_units, num_layers, 
-                            unidirectional_flag, cell_type)
+                            unidirectional_flag, cell_type, batch_norm_flag)
         if gpus >= 2:
             model = multi_gpu_model(model, gpus=gpus)
         model.compile(loss='mean_squared_error', optimizer='adam')
