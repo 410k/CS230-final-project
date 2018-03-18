@@ -212,35 +212,7 @@ def main():
     # import pdb
     # pdb.set_trace()
     # load previous models
-    '''
-    if args.load_model:
-        # assumes that model name is [name]-[e][epoch_number]-[other_stuff]
-        model_filename = args.load_model
-        model_epoch_str = model_filename.split('.hdf5')[0].split('-')[1]
-        model_epoch = model_epoch_str[1:]
-        print("[*] Loading " + args.load_model + " and continuing from epoch " + model_epoch, flush=True)
-        model_path = os.path.join(dirs['model_path'], model_filename)
-        model = load_model(model_path)
-        starting_epoch = int(model_epoch)+1
-    elif args.load_last:
-        # list all the .ckpt files in a tuple (epoch, model_name)
-        tree = os.listdir(dirs["model_path"])
-        files = [(int(file.split('.')[0].split('-')[1][1:]), file.split('.hdf5')[0]) for file in tree]
-        # find the properties of the last checkpoint
-        files.sort(key = lambda t: t[0])
-        target_file = files[-1]
-        model_epoch = target_file[0]
-        model_name = target_file[1]
-        model_filename = model_name + ".hdf5"
-        print("[*] Loading " + model_filename + " and continuing from epoch " + str(model_epoch), flush=True)
-        model_path = os.path.join(dirs['model_path'], model_filename)
-        model = load_model(model_path)
-        starting_epoch = int(model_epoch)+1
-    else:
-        starting_epoch = 0
-    '''
     # train or evaluate the model
-#    if args.mode == 'train':
         # load data
     X_train, Y_train, filenames = load_data(dirs['data_path'], datasplit_dict, 'train', example_duration, time_window_duration, sampling_frequency, loss_domain, use_equal_loudness)
 
