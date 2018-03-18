@@ -265,9 +265,9 @@ def main():
         checkpoint = ModelCheckpoint(checkpoint_filepath, monitor='loss', verbose=1, period=epoch_save_interval)
         
         # save weights
-        cp_wt_filename = 'model-e{epoch:03d}-loss{loss:.4f}.h5'
-        cp_wt_filepath = os.path.join(dirs['model_path'], cp_wt_filename)
-        model.save_weights(cp_wt_filepath)
+        cp_wt_filename = 'weights.h5'
+        cp_wt_filepath = os.path.join(dirs['weight_path'], cp_wt_filename)
+        wtcheckpoint = ModelCheckpoint(cp_wt_filepath, monitor='loss', verbose=1, period=epoch_save_interval, save_weights_only=True)
         
         csv_filename = 'training_log.csv'
         csv_filepath = os.path.join(dirs['current_run'], csv_filename)

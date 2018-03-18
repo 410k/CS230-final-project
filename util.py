@@ -25,6 +25,7 @@ def setup_dirs(args):
     logs_path = os.path.join(current_run, 'logs')
     png_path = os.path.join(current_run, 'png')
     pred_path = os.path.join(current_run, 'predictions')
+    weight_path = os.path.join(current_run,'weights')
     # dictionary of directory paths
     dirs = {'main_path': main_path,
             'current_run': current_run,
@@ -36,7 +37,8 @@ def setup_dirs(args):
             'model_path': model_path,
             'logs_path': logs_path,
             'png_path': png_path,
-            'pred_path': pred_path}
+            'pred_path': pred_path,
+            'weight_path': weight_path}
     # create the directories if they don't already exist
     for dir_name, dir_path in dirs.items():
         if not os.path.exists(dir_path):
