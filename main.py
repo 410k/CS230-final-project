@@ -213,6 +213,9 @@ def main():
         # load data
     X_train, Y_train, filenames = load_data(dirs['data_path'], datasplit_dict, 'train', example_duration, time_window_duration, sampling_frequency, loss_domain, use_equal_loudness)
 
+    # evaluate model on training and train_dev data
+    X_train_dev, Y_train_dev, filenames = load_data(dirs['data_path'], datasplit_dict, 'train_dev', example_duration, time_window_duration, sampling_frequency, loss_domain, use_equal_loudness)
+
     input_shape = (X_train.shape[1], X_train.shape[2])
     output_shape = (Y_train.shape[1], Y_train.shape[2])
 
@@ -262,7 +265,7 @@ def main():
         csv_logger = CSVLogger(csv_filepath, append=True)
         callbacks_list = [checkpoint, csv_logger, wtcheckpoint]
         history_callback = model.fit(X_train, Y_train, epochs=num_epochs+starting_epoch, 
-            initial_epoch=starting_epoch, batch_size=batch_size, callbacks=callbacks_list)
+            initial_epoch=starting_epoch, batch_size=batch_size, callbacks=callbacks_list,validation_data = (X_train_dev, Y_train_dev),verbose=1)
 
         # save the loss history
         loss_history = history_callback.history["loss"]
@@ -276,11 +279,9 @@ def main():
         filepath = os.path.join(dirs['model_path'], filename)
         model.save(filepath)
 
-        # evaluate model on training and train_dev data
-        X_train_dev, Y_train_dev, filenames = load_data(dirs['data_path'], datasplit_dict, 'train_dev', example_duration, time_window_duration, sampling_frequency, loss_domain, use_equal_loudness)
         Y_train_dev_pred = model.predict(X_train_dev, batch_size=batch_size)
         Y_train_pred = model.predict(X_train, batch_size=batch_size)
-
+        
         # save predictions
         save_predictions(dirs['pred_path'], 'train_dev', X_train_dev, Y_train_dev, Y_train_dev_pred)
         save_predictions(dirs['pred_path'], 'train', X_train, Y_train, Y_train_pred)
