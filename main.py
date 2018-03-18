@@ -265,14 +265,14 @@ def main():
         checkpoint = ModelCheckpoint(checkpoint_filepath, monitor='loss', verbose=1, period=epoch_save_interval)
         
         # save weights
-        cp_wt_filename = 'weights.h5'
+        cp_wt_filename = 'weights-e{epoch:03d}-loss{loss:.4f}.h5'
         cp_wt_filepath = os.path.join(dirs['weight_path'], cp_wt_filename)
         wtcheckpoint = ModelCheckpoint(cp_wt_filepath, monitor='loss', verbose=1, period=epoch_save_interval, save_weights_only=True)
         
         csv_filename = 'training_log.csv'
         csv_filepath = os.path.join(dirs['current_run'], csv_filename)
         csv_logger = CSVLogger(csv_filepath, append=True)
-        callbacks_list = [checkpoint, csv_logger]
+        callbacks_list = [checkpoint, csv_logger, wtcheckpoint]
         history_callback = model.fit(X_train, Y_train, epochs=num_epochs+starting_epoch, 
             initial_epoch=starting_epoch, batch_size=batch_size, callbacks=callbacks_list)
 
