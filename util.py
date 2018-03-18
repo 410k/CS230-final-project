@@ -8,6 +8,7 @@ import csv
 import random
 import math
 import pandas as pd
+from scipy.io.wavfile import write
 
 def setup_dirs(args):
     print('[*] Setting up directory...', flush=True)
@@ -208,3 +209,50 @@ def save_predictions(save_path, pred_type, X, Y, Y_pred):
     save_name = pred_type + '_pred.mat'
     filepath = os.path.join(save_path, save_name)
     scipy.io.savemat(filepath, save_dict)
+    
+def unweight(Y, sampling_frequency):
+    # undo equal loudness contour weighting 
+    elc,_ = iso226(30, sampling_frequency, Y.shape[2]/2) 
+    elc = (10**(-np.concatenate((elc,elc),axis = 0))/20) # convert from dB and invert
+    elc = elc/np.max(elc)
+    Y = Y/elc
+    return Y
+
+def inverse_rfft(Y):
+    # reshape and perform inverse rfft from [real imaginary]
+    midpoint = int(Y.shape[2]/2)
+    y = Y[:,:,0:midpoint] + 1j*Y[:,:,midpoint:]
+    y = np.fft.irfft(y,axis=2)
+    return y
+
+def reshape_audio(y):
+    # reshape audio
+    y_flattened = y.reshape(y.size,1)
+    return y_flattened
+
+def scale_audio(y):
+    # scale audio to fit into 16 bit integers
+    scaled = np.int16(y/np.max(np.abs(y))*32767).flatten()
+    return scaled
+
+def process_audio(Y, sampling_frequency, loss_domain, use_equal_loudness):
+    if loss_domain == 'frequency':
+        if use_equal_loudness:
+            Y = unweight(Y,sampling_frequency)
+        Y = inverse_rfft(Y)
+    Y = reshape_audio(Y)
+    Y = scale_audio(Y)
+    return Y
+
+def save_audio(save_path, pred_type, Y, Y_pred, sampling_frequency, loss_domain, use_equal_loudness):
+    Y = process_audio(Y, sampling_frequency, loss_domain, use_equal_loudness)
+    Y_pred = process_audio(Y_pred, sampling_frequency, loss_domain, use_equal_loudness)
+    print('saving audio')
+    # save original audio
+    save_name = pred_type + '.mp3'
+    filepath = os.path.join(save_path, save_name)
+    write(filepath,sampling_frequency,Y)
+    # save predicted audio
+    save_name = pred_type + '_pred.mp3'
+    filepath = os.path.join(save_path, save_name)
+    write(filepath,sampling_frequency,Y_pred)

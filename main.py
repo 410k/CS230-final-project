@@ -166,7 +166,7 @@ from MidiNet import MidiNet
 from sklearn.model_selection import train_test_split
 
 import scipy.io
-from util import setup_dirs, load_data, save_predictions, split_data
+from util import setup_dirs, load_data, save_predictions, split_data, save_audio
 from keras.callbacks import ModelCheckpoint, CSVLogger
 from keras.models import load_model
 import pandas as pd
@@ -209,9 +209,6 @@ def main():
     epoch_save_interval = args.epoch_save_interval
 
     gpus = args.gpus
-    # import pdb
-    # pdb.set_trace()
-    # load previous models
     # train or evaluate the model
         # load data
     X_train, Y_train, filenames = load_data(dirs['data_path'], datasplit_dict, 'train', example_duration, time_window_duration, sampling_frequency, loss_domain, use_equal_loudness)
@@ -288,6 +285,11 @@ def main():
         save_predictions(dirs['pred_path'], 'train_dev', X_train_dev, Y_train_dev, Y_train_dev_pred)
         save_predictions(dirs['pred_path'], 'train', X_train, Y_train, Y_train_pred)
 
+        # save audio
+        print('save train audio')
+        save_audio(dirs['pred_path'], 'train_dev', Y_train_dev, Y_train_dev_pred, sampling_frequency, loss_domain, use_equal_loudness)
+        save_audio(dirs['pred_path'], 'train', Y_train, Y_train_pred, sampling_frequency, loss_domain, use_equal_loudness)
+        
     elif args.mode == 'predict':
         # if args.predict_data_dir == 'test_dev':
         #     data_path = dirs['test_dev_path']
@@ -301,7 +303,9 @@ def main():
 
         # save predictions
         save_predictions(dirs['pred_path'], args.predict_data_dir, X_data, Y_data, Y_data_pred)
-
+        print('save test audio')
+        # save audio
+        save_audio(dirs['pred_path'], args.predict_data_dir, Y_data, Y_data_pred, sampling_frequency, loss_domain, use_equal_loudness)
 
 if __name__ == '__main__':
     main()
