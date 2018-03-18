@@ -60,7 +60,8 @@ def split_data(allfilenames_path,num_songs):
     # get list of all filenames
     allfiles = os.listdir(allfilenames_path)
     allfiles.sort()
-    allfiles.remove('.DS_Store')
+    if '.DS_Store' in allfiles:
+        allfiles.remove('.DS_Store')
     allfilenames = [file.split('_sf11025')[0] for file in allfiles]
     indices = list(range(len(allfiles)))
     random.shuffle(indices)
@@ -247,7 +248,7 @@ def process_audio(Y, sampling_frequency, loss_domain, use_equal_loudness):
 def save_audio(save_path, pred_type, Y, Y_pred, sampling_frequency, loss_domain, use_equal_loudness):
     Y = process_audio(Y, sampling_frequency, loss_domain, use_equal_loudness)
     Y_pred = process_audio(Y_pred, sampling_frequency, loss_domain, use_equal_loudness)
-    print('saving audio')
+    #print('saving audio')
     # save original audio
     save_name = pred_type + '.mp3'
     filepath = os.path.join(save_path, save_name)
