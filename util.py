@@ -14,12 +14,9 @@ def setup_dirs(args):
     print('[*] Setting up directory...', flush=True)
     main_path = args.runs_dir
     current_run = os.path.join(main_path, args.current_run)
+    
     # data
     data_path = args.data_dir
-    #train_path = os.path.join(data_path, 'train')
-    #train_dev_path = os.path.join(data_path, 'train_dev')
-    #test_dev_path = os.path.join(data_path, 'test_dev')
-    #test_path = os.path.join(data_path, 'test')
     
     # model
     model_path = os.path.join(current_run, 'model')
@@ -31,10 +28,6 @@ def setup_dirs(args):
     dirs = {'main_path': main_path,
             'current_run': current_run,
             'data_path': data_path,
-            # 'train_path': train_path,
-            # 'train_dev_path': train_dev_path,
-            # 'test_dev_path': test_dev_path,
-            # 'test_path': test_path,
             'model_path': model_path,
             'logs_path': logs_path,
             'png_path': png_path,
@@ -45,6 +38,7 @@ def setup_dirs(args):
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
     return dirs
+
 
 def split_data(allfilenames_path,num_songs):
     # calculate number of songs in train/train_dev/test
@@ -86,7 +80,11 @@ def split_data(allfilenames_path,num_songs):
     return datasplit_dict
 
 
-def load_data(data_path, datasplit_dict, mode, example_duration, time_window_duration, sampling_frequency, loss_domain, equal_loudness):
+def load_data(data_path, datasplit_dict, mode, example_duration, 
+              time_window_duration, sampling_frequency, loss_domain, 
+              equal_loudness):
+
+    print('[*] Loading data...', flush=True)
 
     if sampling_frequency == 44100:
         wav_path = os.path.join(data_path, 'TPD 44kHz')
@@ -97,12 +95,7 @@ def load_data(data_path, datasplit_dict, mode, example_duration, time_window_dur
     else:
         raise ValueError('sampling frequency not recognized!')
 
-    if time_window_duration == 0.05:
-        twd_suffix = '_dt50'
-    elif time_window_duration == 0.025:
-        twd_suffix = '_dt25'
-    else:
-        raise ValueError('time window duration not recognized!')
+    twd_suffix = '_dt{:02.0f}'.format(time_window_duration*1e3)
     midi_path = os.path.join(data_path, twd_suffix)
 
     X_data, Y_data, filenames = [], [], []
@@ -112,10 +105,6 @@ def load_data(data_path, datasplit_dict, mode, example_duration, time_window_dur
     num_pts_per_window = int(np.round(time_window_duration * sampling_frequency))
     num_windows_per_example = int(example_duration / time_window_duration)
     num_pts_per_example = int(num_pts_per_window * num_windows_per_example)
-
-    print('[*] Loading data...', flush=True)
-    # wav_listing = glob.glob(os.path.join(wav_path, '*.wav'))
-    # midi_listing = glob.glob(os.path.join(midi_path, '*.mat'))
 
     # mask filenames for specific mode
     all_filenames = np.array(datasplit_dict['filename'])
@@ -134,7 +123,7 @@ def load_data(data_path, datasplit_dict, mode, example_duration, time_window_dur
     wav_listing = [os.path.join(wav_path, file) for file in wav_filenames]
     midi_listing = [os.path.join(midi_path, file) for file in midi_filenames]
     
-    print('number of files = ' + str(len(wav_filenames)) + '=' + str(len(midi_filenames)))
+    print('number of files = ' + str(len(wav_filenames)) + '=' + str(len(midi_filenames)), flush=True)
 
     target_wav_files = []
     target_midi_files = []
@@ -145,7 +134,7 @@ def load_data(data_path, datasplit_dict, mode, example_duration, time_window_dur
             target_wav_files.append(corresponding_wav_file)
             target_midi_files.append(midi_file)
 
-    #
+    # load the data and format them
     for i, midi_filepath in enumerate(target_midi_files):
         filename = midi_filepath.split('/')[-1].split(twd_suffix+'.mat')[0]
         print('   loading ' + filename, flush=True)
@@ -179,9 +168,10 @@ def load_data(data_path, datasplit_dict, mode, example_duration, time_window_dur
             Y_data.append(example_y)
             filenames.append(filename)
 
-
+    # change the list of examples into a matrix of [examples, time_windows, pitch_encoding/audio output]
     X_data = np.stack(X_data)
     Y_data = np.stack(Y_data)
+    
     # train on the frequency domain loss function
     if loss_domain == 'frequency':
         #import pdb
@@ -195,8 +185,7 @@ def load_data(data_path, datasplit_dict, mode, example_duration, time_window_dur
             elc = elc/np.max(elc)
             Y_data = Y_data*elc 
 
-            
-            
+    # error checks
     assert(X_data.shape[0] == Y_data.shape[0])
     assert(X_data.shape[1] == Y_data.shape[1])
 
