@@ -246,3 +246,27 @@ def save_audio(save_path, pred_type, Y, Y_pred, sampling_frequency, loss_domain,
     save_name = pred_type + '_pred.mp3'
     filepath = os.path.join(save_path, save_name)
     write(filepath,sampling_frequency,Y_pred)
+
+
+# custom loss functions
+def spectrogram_loss(y_true, y_pred):
+    #pdb.set_trace()
+    Y_true = tf.spectral.rfft(y_true)
+    Y_pred = tf.spectral.rfft(y_pred)
+    Y_true = tf.log(tf.abs(Y_true) + 1e-6)
+    Y_pred = tf.log(tf.abs(Y_pred) + 1e-6)
+    loss = tf.norm(Y_true - Y_pred,axis = 2)
+    return loss
+
+
+def weighted_spectrogram(y_true, y_pred):
+    '''
+    Y_data = np.fft.rfft(Y_data,axis=2)
+    Y_data = np.concatenate((np.real(Y_data),np.imag(Y_data)),axis=2)
+    if equal_loudness:
+        # apply equal loudness contour weighting 
+        elc,_ = iso226(30, sampling_frequency, Y_data.shape[2]/2) 
+        elc = (10**(-np.concatenate((elc,elc),axis = 0))/20) # convert from dB and invert
+        elc = elc/np.max(elc)
+        Y_data = Y_data*elc 
+    '''
