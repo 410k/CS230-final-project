@@ -8,7 +8,10 @@ import csv
 import random
 import math
 import pandas as pd
+from keras import backend as K
 from scipy.io.wavfile import write
+import tensorflow as tf
+import pdb
 
 def setup_dirs(args):
     print('[*] Setting up directory...', flush=True)
@@ -86,7 +89,7 @@ def split_data(allfilenames_path,num_songs):
     return datasplit_dict
 
 
-def load_data(data_path, datasplit_dict, mode, example_duration, time_window_duration, sampling_frequency, loss_domain, equal_loudness):
+def load_data(data_path, datasplit_dict, mode, example_duration, time_window_duration, sampling_frequency):
 
     if sampling_frequency == 44100:
         wav_path = os.path.join(data_path, 'TPD 44kHz')
@@ -182,20 +185,6 @@ def load_data(data_path, datasplit_dict, mode, example_duration, time_window_dur
 
     X_data = np.stack(X_data)
     Y_data = np.stack(Y_data)
-    # train on the frequency domain loss function
-    if loss_domain == 'frequency':
-        #import pdb
-        #pdb.set_trace()
-        Y_data = np.fft.rfft(Y_data,axis=2)
-        Y_data = np.concatenate((np.real(Y_data),np.imag(Y_data)),axis=2)
-        if equal_loudness:
-            # apply equal loudness contour weighting 
-            elc,_ = iso226(30, sampling_frequency, Y_data.shape[2]/2) 
-            elc = (10**(-np.concatenate((elc,elc),axis = 0))/20) # convert from dB and invert
-            elc = elc/np.max(elc)
-            Y_data = Y_data*elc 
-
-            
             
     assert(X_data.shape[0] == Y_data.shape[0])
     assert(X_data.shape[1] == Y_data.shape[1])
@@ -236,20 +225,14 @@ def scale_audio(y):
     scaled = np.int16(y/np.max(np.abs(y))*32767).flatten()
     return scaled
 
-def process_audio(Y, sampling_frequency, loss_domain, use_equal_loudness):
-    if loss_domain == 'frequency':
-        if use_equal_loudness:
-            Y = unweight(Y,sampling_frequency)
-        Y = inverse_rfft(Y)
+def process_audio(Y, sampling_frequency):
     Y = reshape_audio(Y)
     Y = scale_audio(Y)
     return Y
 
-def save_audio(save_path, pred_type, Y, Y_pred, sampling_frequency, loss_domain, use_equal_loudness):
-    Y = process_audio(Y, sampling_frequency, loss_domain, use_equal_loudness)
-    Y_pred = process_audio(Y_pred, sampling_frequency, loss_domain, use_equal_loudness)
-    #print('saving audio')
-    # save original audio
+def save_audio(save_path, pred_type, Y, Y_pred, sampling_frequency):
+    Y = process_audio(Y, sampling_frequency)
+    Y_pred = process_audio(Y_pred, sampling_frequency)
     save_name = pred_type + '.mp3'
     filepath = os.path.join(save_path, save_name)
     write(filepath,sampling_frequency,Y)
@@ -257,3 +240,32 @@ def save_audio(save_path, pred_type, Y, Y_pred, sampling_frequency, loss_domain,
     save_name = pred_type + '_pred.mp3'
     filepath = os.path.join(save_path, save_name)
     write(filepath,sampling_frequency,Y_pred)
+
+    
+def log10(x):
+    # log base 10 function for matching up with dB  
+    numerator = tf.log(x)
+    denominator = tf.log(tf.constant(10, dtype=numerator.dtype))
+    return numerator / denominator
+    
+# custom loss functions
+def spectrogram_loss(y_true, y_pred):
+    #pdb.set_trace()
+    Y_true = tf.spectral.rfft(y_true)
+    Y_pred = tf.spectral.rfft(y_pred)
+    Y_true = tf.log(tf.abs(Y_true) + 1e-6)
+    Y_pred = tf.log(tf.abs(Y_pred) + 1e-6)
+    loss = tf.norm(Y_true - Y_pred,axis = 2)
+    return loss
+
+def weighted_spectrogram(y_true, y_pred):
+    '''
+    Y_data = np.fft.rfft(Y_data,axis=2)
+    Y_data = np.concatenate((np.real(Y_data),np.imag(Y_data)),axis=2)
+    if equal_loudness:
+        # apply equal loudness contour weighting 
+        elc,_ = iso226(30, sampling_frequency, Y_data.shape[2]/2) 
+        elc = (10**(-np.concatenate((elc,elc),axis = 0))/20) # convert from dB and invert
+        elc = elc/np.max(elc)
+        Y_data = Y_data*elc 
+    '''

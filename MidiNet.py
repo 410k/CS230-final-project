@@ -4,9 +4,9 @@ from keras.layers import Dense
 from keras.layers import LSTM, GRU
 from keras.layers import TimeDistributed
 from keras.layers import Lambda
-from iso226 import iso226
-from iso226 import weight_loss
-import numpy as np
+#from iso226 import iso226
+#from iso226 import weight_loss
+#import numpy as np
 
 
 def MidiNet(input_shape, output_shape, loss_domain, elc = [], 
@@ -24,9 +24,9 @@ def MidiNet(input_shape, output_shape, loss_domain, elc = [],
         model.add(layer)
     # fully connected layer
     model.add(TimeDistributed(Dense(output_shape[1], activation=None)))
-    # add frequency domain weighting function
-    if loss_domain == 'frequency' and elc.size != 0 :
-        model.add(Lambda(lambda x: elc*x))
+#    # add frequency domain weighting function
+#    if loss_domain == 'frequency' and elc.size != 0 :
+#        model.add(Lambda(lambda x: elc*x))
     return model
 
 

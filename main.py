@@ -166,7 +166,7 @@ from MidiNet import MidiNet
 from sklearn.model_selection import train_test_split
 
 import scipy.io
-from util import setup_dirs, load_data, save_predictions, split_data, save_audio
+from util import setup_dirs, load_data, save_predictions, split_data, save_audio, spectrogram_loss
 from keras.callbacks import ModelCheckpoint, CSVLogger
 from keras.models import load_model
 import pandas as pd
@@ -211,10 +211,10 @@ def main():
     gpus = args.gpus
     # train or evaluate the model
         # load data
-    X_train, Y_train, filenames = load_data(dirs['data_path'], datasplit_dict, 'train', example_duration, time_window_duration, sampling_frequency, loss_domain, use_equal_loudness)
+    X_train, Y_train, filenames = load_data(dirs['data_path'], datasplit_dict, 'train', example_duration, time_window_duration, sampling_frequency)
 
     # evaluate model on training and train_dev data
-    X_train_dev, Y_train_dev, filenames = load_data(dirs['data_path'], datasplit_dict, 'train_dev', example_duration, time_window_duration, sampling_frequency, loss_domain, use_equal_loudness)
+    X_train_dev, Y_train_dev, filenames = load_data(dirs['data_path'], datasplit_dict, 'train_dev', example_duration, time_window_duration, sampling_frequency)
 
     input_shape = (X_train.shape[1], X_train.shape[2])
     output_shape = (Y_train.shape[1], Y_train.shape[2])
@@ -229,7 +229,10 @@ def main():
                             unidirectional_flag, cell_type)
         if gpus >= 2:
             model = multi_gpu_model(model, gpus=gpus)
-        model.compile(loss='mean_squared_error', optimizer='adam')
+        if loss_domain == 'frequency':
+            model.compile(loss=spectrogram_loss, optimizer='adam')
+        else:
+            model.compile(loss='mean_squared_error', optimizer='adam')
     print(model.summary())
 
     if args.load_last: # load last set of weights
@@ -288,15 +291,15 @@ def main():
 
         # save audio
         print('save train audio')
-        save_audio(dirs['pred_path'], 'train_dev', Y_train_dev, Y_train_dev_pred, sampling_frequency, loss_domain, use_equal_loudness)
-        save_audio(dirs['pred_path'], 'train', Y_train, Y_train_pred, sampling_frequency, loss_domain, use_equal_loudness)
+        save_audio(dirs['pred_path'], 'train_dev', Y_train_dev, Y_train_dev_pred, sampling_frequency)
+        save_audio(dirs['pred_path'], 'train', Y_train, Y_train_pred, sampling_frequency)
         
     elif args.mode == 'predict':
         # if args.predict_data_dir == 'test_dev':
         #     data_path = dirs['test_dev_path']
         # elif args.predict_data_dir == 'test':
         #     data_path = dirs['test_path']
-        X_data, Y_data, filenames = load_data(dirs['data_path'], datasplit_dict, 'test', example_duration, time_window_duration, sampling_frequency, loss_domain, use_equal_loudness)
+        X_data, Y_data, filenames = load_data(dirs['data_path'], datasplit_dict, 'test', example_duration, time_window_duration, sampling_frequency)
 
         # evaluate model on test data
         print('[*] Making predictions', flush=True)
@@ -306,7 +309,7 @@ def main():
         save_predictions(dirs['pred_path'], args.predict_data_dir, X_data, Y_data, Y_data_pred)
         print('save test audio')
         # save audio
-        save_audio(dirs['pred_path'], args.predict_data_dir, Y_data, Y_data_pred, sampling_frequency, loss_domain, use_equal_loudness)
+        save_audio(dirs['pred_path'], args.predict_data_dir, Y_data, Y_data_pred, sampling_frequency)
 
 if __name__ == '__main__':
     main()
