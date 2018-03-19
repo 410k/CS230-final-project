@@ -253,6 +253,13 @@ def save_audio(save_path, pred_type, Y, Y_pred, sampling_frequency, loss_domain,
 
 
 # custom loss functions
+def scaled_mse_functor(scale_loss_factor):
+    def scaled_mse_loss(y_true, y_pred):
+        loss = tf.reduce_mean(tf.square(y_true-y_pred)) * scale_loss_factor
+        return loss
+    return scaled_mse_loss
+
+
 def spectrogram_loss(y_true, y_pred):
     #pdb.set_trace()
     #Y_true = tf.spectral.rfft(y_true)

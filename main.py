@@ -25,6 +25,9 @@ parser.add_argument("-do", "--dropout",
 parser.add_argument("-llo", "--layer_lock_out",
                     type=str, default = None,
                     help="Layer Lock Out --> type layers in a delimited list, e.g. \"1,2\"")
+parser.add_argument("-sl", "--scale_loss",
+                    type=float, default=1,
+                    help="Scale loss by factor of sl")
 # input data options
 parser.add_argument("-nsongs", "--num_songs",
                     type=int, default=349,
@@ -104,7 +107,8 @@ dirs = setup_dirs(args)
 run_details_file = os.path.join(dirs['current_run'], 'run_details.txt')
 
 # architecture options
-architecture_options = ['hidden_units', 'layers', 'unidirectional', 'cell_type', 'batch_norm', 'dropout', 'layer_lock_out']
+architecture_options = ['hidden_units', 'layers', 'unidirectional', 'cell_type', 
+                        'batch_norm', 'dropout', 'layer_lock_out', 'scale_loss']
 print('architecture options')
 print('--------------------')
 with open(run_details_file,'a') as file:
@@ -175,7 +179,9 @@ from MidiNet import MidiNet
 from sklearn.model_selection import train_test_split
 
 import scipy.io
-from util import setup_dirs, load_data, save_predictions, split_data, save_audio, spectrogram_loss, weighted_spectrogram_loss
+
+from util import setup_dirs, load_data, save_predictions, split_data, save_audio, spectrogram_loss, weighted_spectrogram_loss, scaled_mse_functor
+
 from keras.callbacks import ModelCheckpoint, CSVLogger
 from keras.models import load_model
 import pandas as pd
@@ -245,11 +251,15 @@ def main():
                             unidirectional_flag, cell_type, batch_norm_flag, dropout, layer_lock_out_mask)
         if gpus >= 2:
             model = multi_gpu_model(model, gpus=gpus)
+
         if(loss_domain == "frequency"):
             if(use_equal_loudness):
                 model.compile(loss=weighted_spectrogram_loss, optimizer='nadam')
             else:
                 model.compile(loss=spectrogram_loss, optimizer='nadam')
+        elif args.scale_loss != 1:
+            scaled_mse_loss = scaled_mse_functor(args.scale_loss)
+            model.compile(loss=scaled_mse_loss, optimizer='adam')
         else:
             model.compile(loss='mean_squared_error', optimizer='adam')
     print(model.summary())
