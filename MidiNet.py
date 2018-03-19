@@ -13,16 +13,16 @@ import numpy as np
 
 def MidiNet(input_shape, output_shape, loss_domain, elc = [], 
             num_hidden_units=128, num_layers=2, unidirectional_flag=False,
-            cell_type='GRU', batch_norm_flag=False, dropout=0):
+            cell_type='GRU', batch_norm_flag=False, dropout=0, layer_lock_out_mask=[]):
     
     # create RNN
     print('[*] Creating network', flush=True)
     model = Sequential()
     for l in range(num_layers):
         if unidirectional_flag:
-            layer = create_unidirectional(cell_type, input_shape, num_hidden_units)
+            layer = create_unidirectional(cell_type, input_shape, num_hidden_units, layer_lock_out_mask[l])
         else:
-            layer = create_bidirectional(cell_type, input_shape, num_hidden_units)
+            layer = create_bidirectional(cell_type, input_shape, num_hidden_units, layer_lock_out_mask[l])
         model.add(layer)
         if batch_norm_flag:
             model.add(BatchNormalization())
@@ -44,11 +44,13 @@ def create_GRU_cell(num_hidden_units):
     return GRU(num_hidden_units, return_sequences=True)
 
 
-def create_bidirectional(cell_type, input_shape, num_hidden_units):
+def create_bidirectional(cell_type, input_shape, num_hidden_units, layer_lock_out_flag):
     if cell_type == 'GRU':
-        return Bidirectional(create_GRU_cell(num_hidden_units), input_shape=input_shape)
+        print('trainable flag = ' + str(layer_lock_out_flag))
+        return Bidirectional(create_GRU_cell(num_hidden_units), input_shape=input_shape, trainable=layer_lock_out_flag)
     elif cell_type == 'LSTM':
-        return Bidirectional(create_LSTM_cell(num_hidden_units), input_shape=input_shape)
+        print('trainable flag = ' + str(layer_lock_out_flag))
+        return Bidirectional(create_LSTM_cell(num_hidden_units), input_shape=input_shape, trainable=layer_lock_out_flag)
     else:
         print('Incorrect cell type specified!')
         
