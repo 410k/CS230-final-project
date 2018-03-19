@@ -306,14 +306,16 @@ def main():
         Y_train_dev_pred = model.predict(X_train_dev, batch_size=batch_size)
         Y_train_pred = model.predict(X_train, batch_size=batch_size)
         
-        # save predictions
-        save_predictions(dirs['pred_path'], 'train_dev', X_train_dev, Y_train_dev, Y_train_dev_pred)
-        save_predictions(dirs['pred_path'], 'train', X_train, Y_train, Y_train_pred)
-
         # save audio
         print('save train audio')
         save_audio(dirs['pred_path'], 'train_dev', Y_train_dev, Y_train_dev_pred, sampling_frequency, loss_domain, use_equal_loudness)
         save_audio(dirs['pred_path'], 'train', Y_train, Y_train_pred, sampling_frequency, loss_domain, use_equal_loudness)
+        
+        
+        # save predictions
+        save_predictions(dirs['pred_path'], 'train_dev', X_train_dev, Y_train_dev, Y_train_dev_pred)
+        save_predictions(dirs['pred_path'], 'train', X_train, Y_train, Y_train_pred)
+
         
     elif args.mode == 'predict':
         # if args.predict_data_dir == 'test_dev':
@@ -326,11 +328,13 @@ def main():
         print('[*] Making predictions', flush=True)
         Y_data_pred = model.predict(X_data, batch_size=batch_size)
 
+          # save audio
+        save_audio(dirs['pred_path'], args.predict_data_dir, Y_data, Y_data_pred, sampling_frequency, loss_domain, use_equal_loudness)
+        
         # save predictions
         save_predictions(dirs['pred_path'], args.predict_data_dir, X_data, Y_data, Y_data_pred)
         print('save test audio')
-        # save audio
-        save_audio(dirs['pred_path'], args.predict_data_dir, Y_data, Y_data_pred, sampling_frequency, loss_domain, use_equal_loudness)
+      
 
 if __name__ == '__main__':
     main()
