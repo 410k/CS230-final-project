@@ -31,8 +31,8 @@ def MidiNet(input_shape, output_shape, loss_domain, elc = [],
     # fully connected layer
     model.add(TimeDistributed(Dense(output_shape[1], activation=None)))
     # add frequency domain weighting function
-    if loss_domain == 'frequency' and elc.size != 0 :
-        model.add(Lambda(lambda x: elc*x))
+    #if loss_domain == 'frequency' and elc.size != 0 :
+    #    model.add(Lambda(lambda x: elc*x))
     return model
 
 

@@ -175,7 +175,7 @@ from MidiNet import MidiNet
 from sklearn.model_selection import train_test_split
 
 import scipy.io
-from util import setup_dirs, load_data, save_predictions, split_data, save_audio
+from util import setup_dirs, load_data, save_predictions, split_data, save_audio, spectrogram_loss, weighted_spectrogram_loss
 from keras.callbacks import ModelCheckpoint, CSVLogger
 from keras.models import load_model
 import pandas as pd
@@ -245,7 +245,13 @@ def main():
                             unidirectional_flag, cell_type, batch_norm_flag, dropout, layer_lock_out_mask)
         if gpus >= 2:
             model = multi_gpu_model(model, gpus=gpus)
-        model.compile(loss='mean_squared_error', optimizer='adam')
+        if(loss_domain == "frequency"):
+            if(use_equal_loudness):
+                model.compile(loss=weighted_spectrogram_loss, optimizer='nadam')
+            else:
+                model.compile(loss=spectrogram_loss, optimizer='nadam')
+        else:
+            model.compile(loss='mean_squared_error', optimizer='adam')
     print(model.summary())
 
     if args.load_last: # load last set of weights

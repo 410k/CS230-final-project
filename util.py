@@ -9,6 +9,7 @@ import random
 import math
 import pandas as pd
 from scipy.io.wavfile import write
+import tensorflow as tf
 
 def setup_dirs(args):
     print('[*] Setting up directory...', flush=True)
@@ -177,13 +178,16 @@ def load_data(data_path, datasplit_dict, mode, example_duration,
         #import pdb
         #pdb.set_trace()
         Y_data = np.fft.rfft(Y_data,axis=2)
-        Y_data = np.concatenate((np.real(Y_data),np.imag(Y_data)),axis=2)
+        Y_data = np.concatenate((np.real(Y_data),np.imag(Y_data)),axis = 2)
+        #Y_data = np.log(np.abs(Y_data)+1e-6)
+
         if equal_loudness:
             # apply equal loudness contour weighting 
             elc,_ = iso226(30, sampling_frequency, Y_data.shape[2]/2) 
-            elc = (10**(-np.concatenate((elc,elc),axis = 0))/20) # convert from dB and invert
+            #elc = (10**(-np.concatenate((elc,elc),axis = 0))/20) # convert from dB and invert
+            elc = 1/elc
             elc = elc/np.max(elc)
-            Y_data = Y_data*elc 
+            Y_data = Y_data/elc 
 
     # error checks
     assert(X_data.shape[0] == Y_data.shape[0])
@@ -227,8 +231,8 @@ def scale_audio(y):
 
 def process_audio(Y, sampling_frequency, loss_domain, use_equal_loudness):
     if loss_domain == 'frequency':
-        if use_equal_loudness:
-            Y = unweight(Y,sampling_frequency)
+        #if use_equal_loudness:
+         #   Y = unweight(Y,sampling_frequency)
         Y = inverse_rfft(Y)
     Y = reshape_audio(Y)
     Y = scale_audio(Y)
@@ -251,15 +255,34 @@ def save_audio(save_path, pred_type, Y, Y_pred, sampling_frequency, loss_domain,
 # custom loss functions
 def spectrogram_loss(y_true, y_pred):
     #pdb.set_trace()
-    Y_true = tf.spectral.rfft(y_true)
-    Y_pred = tf.spectral.rfft(y_pred)
-    Y_true = tf.log(tf.abs(Y_true) + 1e-6)
-    Y_pred = tf.log(tf.abs(Y_pred) + 1e-6)
-    loss = tf.norm(Y_true - Y_pred,axis = 2)
+    #Y_true = tf.spectral.rfft(y_true)
+    #import pdb
+    #pdb.set_trace()
+    #Y_pred = tf.spectral.rfft(y_pred)
+    #Y_true = tf.log(tf.abs(Y_true) + 1e-6)
+    n = tf.cast(tf.shape(y_pred),dtype=tf.int32)
+    nz = tf.cast(n[2]/2,dtype=tf.int32)
+    ny = n[1]
+    nx = n[0]
+    y_true = tf.complex( tf.slice(y_true,[0,0,0],[nx,ny,nz]),tf.slice(y_true,[0,0,nz],[nx,ny,nz]))
+    y_true = tf.log(tf.abs(y_true) + 1e-6)
+    
+    y_pred = tf.complex(tf.slice(y_pred,[0,0,0],[nx,ny,nz]), tf.slice(y_pred,[0,0,nz],[nx,ny,nz]))
+    y_pred = tf.log(tf.abs(y_pred) + 1e-6)
+    loss = tf.norm(y_true - y_pred,axis = 2)
     return loss
 
 
-def weighted_spectrogram(y_true, y_pred):
+def weighted_spectrogram_loss(y_true, y_pred):
+    #Y_pred = tf.spectral.rfft(y_pred)
+    Y_pred = tf.log(tf.abs(Y_pred) + 1e-6)
+    # apply equal loudness contour weighting 
+    elc,_ = iso226(30, sampling_frequency, Y_data.shape[2]/2) 
+    elc = 1/elc
+    elc = elc/np.max(elc)
+    Y_data = Y_data/elc 
+    loss = tf.norm(y_true - Y_pred,axis = 2)
+    return loss
     '''
     Y_data = np.fft.rfft(Y_data,axis=2)
     Y_data = np.concatenate((np.real(Y_data),np.imag(Y_data)),axis=2)
