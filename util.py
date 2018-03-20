@@ -245,21 +245,14 @@ def save_audio(save_path, pred_type, Y, Y_pred, sampling_frequency, loss_domain,
     # save original audio
     save_name = pred_type + '.mp3'
     filepath = os.path.join(save_path, save_name)
-    write(filepath,sampling_frequency,Y)
+    write(filepath,sampling_frequency,Y[0:sampling_frequency*60])
     # save predicted audio
     save_name = pred_type + '_pred.mp3'
     filepath = os.path.join(save_path, save_name)
-    write(filepath,sampling_frequency,Y_pred)
+    write(filepath,sampling_frequency,Y_pred[0:sampling_frequency*60])
 
 
 # custom loss functions
-def scaled_mse_functor(scale_loss_factor):
-    def scaled_mse_loss(y_true, y_pred):
-        loss = tf.reduce_mean(tf.square(y_true-y_pred)) * scale_loss_factor
-        return loss
-    return scaled_mse_loss
-
-
 def spectrogram_loss(y_true, y_pred):
     #pdb.set_trace()
     #Y_true = tf.spectral.rfft(y_true)
