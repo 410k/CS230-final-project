@@ -216,6 +216,8 @@ def main():
     cell_type = args.cell_type
     batch_size = args.batch_size
     dropout = args.dropout
+    learning_rate = args.learning_rate
+    
     if args.layer_lock_out == None:
         layer_lock_out = []
     else:
@@ -247,7 +249,7 @@ def main():
         if gpus >= 2:
             model = multi_gpu_model(model, gpus=gpus)
         if(loss_domain == "frequency"):
-            opt = Nadam(clipvalue=1)
+            opt = Nadam(clipvalue=1,lr=learning_rate)
             if(use_equal_loudness):
                 model.compile(loss=weighted_spectrogram_loss, optimizer=opt)
             else:
